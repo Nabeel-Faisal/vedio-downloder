@@ -63,7 +63,6 @@ app.post('/api/info', async (req, res) => {
             addHeader: ['referer:youtube.com', 'user-agent:Mozilla/5.0'],
             // Explicitly try to use system binary if found, else let library decide
         });
-...
 
         const formats = [];
         formats.push({ id: 'bestvideo+bestaudio/best', label: '🏆 Best Quality (auto)', ext: 'mp4' });
