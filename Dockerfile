@@ -29,4 +29,4 @@ COPY . .
 EXPOSE 3000
 
 # Start the application
-CMD ["node", "server.js"]
+CMD if [ -n "$COOKIES_CONTENT" ]; then echo "$COOKIES_CONTENT" > cookies.txt; fi && node server.js

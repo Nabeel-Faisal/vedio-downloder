@@ -47,6 +47,26 @@ app.get('/api/diag', (req, res) => {
     res.json(results);
 });
 
+// Helper for common yt-dlp options
+function getYtDlpOptions(url, extra = {}) {
+    const domain = new URL(url).hostname.replace('www.', '');
+    const options = {
+        noPlaylist: true,
+        noCheckCertificates: true,
+        preferFreeFormats: true,
+        addHeader: [
+            `referer:https://www.${domain}/`,
+            'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+        ],
+        ...extra
+    };
+
+    if (fs.existsSync(path.join(__dirname, 'cookies.txt'))) {
+        options.cookies = path.join(__dirname, 'cookies.txt');
+    }
+    return options;
+}
+
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 app.post('/api/info', async (req, res) => {
@@ -61,13 +81,7 @@ app.post('/api/info', async (req, res) => {
             ? youtubedl.create(systemYtDlp) 
             : youtubedl;
 
-        const info = await executor(url, {
-            dumpJson: true,
-            noPlaylist: true,
-            noCheckCertificates: true,
-            preferFreeFormats: true,
-            addHeader: ['referer:youtube.com', 'user-agent:Mozilla/5.0'],
-        });
+        const info = await executor(url, getYtDlpOptions(url, { dumpJson: true }));
 
         const formats = [];
         formats.push({ id: 'bestvideo+bestaudio/best', label: '🏆 Best Quality (auto)', ext: 'mp4' });
@@ -123,21 +137,20 @@ app.post('/api/download', async (req, res) => {
     try {
         console.log(`[download] Starting: ${url} (Format: ${formatId})`);
 
-        const options = {
-            output: tmpOut,
-            noPlaylist: true,
-            mergeOutputFormat: 'mp4'
-        };
+        const dlOptions = getYtDlpOptions(url, {
+            mergeOutputFormat: 'mp4',
+            output: tmpOut
+        });
 
         if (formatId === 'bestaudio/best') {
-            options.format = 'bestaudio/best';
-            options.extractAudio = true;
-            options.audioFormat = 'mp3';
+            dlOptions.format = 'bestaudio/best';
+            dlOptions.extractAudio = true;
+            dlOptions.audioFormat = 'mp3';
         } else {
-            options.format = formatId || 'bestvideo+bestaudio/best';
+            dlOptions.format = formatId || 'bestvideo+bestaudio/best';
         }
 
-        await youtubedl(url, options);
+        await youtubedl(url, dlOptions);
 
         const pattern = `${path.basename(tmpBase)}`;
         const written = fs.readdirSync(tmpDir).find(f => f.startsWith(pattern));
