@@ -55,13 +55,18 @@ app.post('/api/info', async (req, res) => {
 
     try {
         console.log(`[info] Fetching: ${url}`);
-        const info = await youtubedl(url, {
+        
+        // Use custom yt-dlp path if we found one
+        const executor = (systemYtDlp && systemYtDlp !== 'yt-dlp') 
+            ? youtubedl.create(systemYtDlp) 
+            : youtubedl;
+
+        const info = await executor(url, {
             dumpJson: true,
             noPlaylist: true,
             noCheckCertificates: true,
             preferFreeFormats: true,
             addHeader: ['referer:youtube.com', 'user-agent:Mozilla/5.0'],
-            // Explicitly try to use system binary if found, else let library decide
         });
 
         const formats = [];
@@ -97,7 +102,11 @@ app.post('/api/info', async (req, res) => {
         });
     } catch (err) {
         console.error('[/api/info] Error:', err.message);
-        res.status(500).json({ error: 'Failed to fetch video info. Please check the URL.' });
+        res.status(500).json({ 
+            error: 'Failed to fetch video info.', 
+            details: err.message,
+            tip: 'If this is on Railway, check if yt-dlp is installed via nixPkgs.' 
+        });
     }
 });
 
