@@ -49,14 +49,22 @@ app.get('/api/diag', (req, res) => {
 
 // Helper for common yt-dlp options
 function getYtDlpOptions(url, extra = {}) {
+    const isInstagram = url.includes('instagram.com');
     const domain = new URL(url).hostname.replace('www.', '');
+    
+    // Modern mobile User-Agent for Instagram, Desktop for others
+    const userAgent = isInstagram 
+        ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'
+        : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
     const options = {
         noPlaylist: true,
         noCheckCertificates: true,
         preferFreeFormats: true,
+        geoBypass: true,
         addHeader: [
             `referer:https://www.${domain}/`,
-            'user-agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+            `user-agent:${userAgent}`
         ],
         ...extra
     };
