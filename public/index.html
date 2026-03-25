@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VideoGrab – Download Any Video</title>
+  <meta name="description"
+    content="Download videos from YouTube, TikTok, Instagram, Twitter, Vimeo, Reddit, and 1000+ more sites instantly." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- Background orbs -->
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <div class="container">
+
+    <!-- ── Header ── -->
+    <header class="hero">
+      <div class="logo">
+        <span class="logo-icon">▶</span>
+        <span class="logo-text">VideoGrab</span>
+      </div>
+      <h1 class="hero-title">Download Any Video,<br /><span class="gradient-text">Instantly.</span></h1>
+      <p class="hero-sub">YouTube · TikTok · Instagram · Twitter · Vimeo · Reddit · and 1000+ more</p>
+    </header>
+
+    <!-- ── Search Bar ── -->
+    <section class="search-section">
+      <div class="search-bar" id="searchBar">
+        <span class="search-icon">🔗</span>
+        <input type="url" id="urlInput" placeholder="Paste video URL here…" autocomplete="off" spellcheck="false" />
+        <button id="fetchBtn" class="btn-fetch">
+          <span id="fetchBtnText">Fetch</span>
+          <span id="fetchSpinner" class="spinner hidden"></span>
+        </button>
+      </div>
+      <p id="errorMsg" class="error-msg hidden"></p>
+    </section>
+
+    <!-- ── Video Preview Card ── -->
+    <section id="videoCard" class="video-card hidden">
+      <div class="card-inner">
+        <div class="thumbnail-wrap">
+          <img id="thumbnail" src="" alt="Video thumbnail" />
+          <div class="play-overlay">▶</div>
+          <span id="duration" class="duration-badge"></span>
+        </div>
+        <div class="card-info">
+          <span id="platform" class="platform-badge"></span>
+          <h2 id="videoTitle" class="video-title"></h2>
+          <p id="uploader" class="video-uploader"></p>
+          <div class="video-stats">
+            <span id="viewCount" class="stat"></span>
+            <span id="likeCount" class="stat"></span>
+          </div>
+
+          <!-- Format selector -->
+          <div class="format-section">
+            <label class="format-label" for="formatSelect">Quality / Format</label>
+            <select id="formatSelect" class="format-select"></select>
+          </div>
+
+          <button id="downloadBtn" class="btn-download">
+            <span class="dl-icon">⬇</span>
+            <span id="downloadBtnText">Download</span>
+            <span id="downloadSpinner" class="spinner hidden"></span>
+          </button>
+          <p id="downloadNote" class="download-note hidden">⏳ Preparing your download… this may take a moment.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Supported Platforms ── -->
+    <section class="platforms">
+      <p class="platforms-title">Supported Platforms</p>
+      <div class="platforms-grid">
+        <div class="platform-chip">🎬 YouTube</div>
+        <div class="platform-chip">🎵 TikTok</div>
+        <div class="platform-chip">📸 Instagram</div>
+        <div class="platform-chip">🐦 Twitter / X</div>
+        <div class="platform-chip">🎞 Vimeo</div>
+        <div class="platform-chip">🤖 Reddit</div>
+        <div class="platform-chip">📘 Facebook</div>
+        <div class="platform-chip">🔊 SoundCloud</div>
+        <div class="platform-chip">✨ 1000+ more</div>
+      </div>
+    </section>
+
+    <footer class="footer">Powered by yt-dlp &mdash; no account needed, no watermarks</footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
