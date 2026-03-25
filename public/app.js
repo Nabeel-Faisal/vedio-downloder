@@ -75,7 +75,10 @@ async function fetchInfo() {
         });
 
         const data = await resp.json();
-        if (!resp.ok) throw new Error(data.error || 'Failed to fetch video info');
+        if (!resp.ok) {
+            const msg = data.details ? `${data.error} (${data.details})` : data.error;
+            throw new Error(msg || 'Failed to fetch video info');
+        }
 
         // Populate card
         thumbnail.src = data.thumbnail || '';

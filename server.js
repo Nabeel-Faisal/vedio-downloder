@@ -50,7 +50,8 @@ app.get('/api/diag', (req, res) => {
 // Helper for common yt-dlp options
 function getYtDlpOptions(url, extra = {}) {
     const isInstagram = url.includes('instagram.com');
-    const domain = new URL(url).hostname.replace('www.', '');
+    let domain = new URL(url).hostname.replace('www.', '');
+    if (domain === 'youtu.be') domain = 'youtube.com';
     
     // Modern mobile User-Agent for Instagram, Desktop for others
     const userAgent = isInstagram 
