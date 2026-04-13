@@ -7,5 +7,7 @@ yarn-error.log*
 .DS_Store
 cookies.txt
 cookies*.txt
+*cookies.txt
+yt-dlp-cache/
 vg_*
 requirements.txt

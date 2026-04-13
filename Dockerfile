@@ -7,7 +7,10 @@ RUN apt-get update && \
     python3 \
     python3-pip \
     ffmpeg \
-    curl && \
+    curl \
+    unzip && \
+    curl -fsSL https://deno.land/x/install/install.sh | sh && \
+    mv /root/.deno/bin/deno /usr/local/bin/deno && \
     curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
     apt-get clean && \
@@ -15,6 +18,9 @@ RUN apt-get update && \
 
 # Set working directory
 WORKDIR /app
+
+# Create cache directory for yt-dlp
+RUN mkdir -p /app/.cache && chmod 777 /app/.cache
 
 # Copy package files
 COPY package*.json ./

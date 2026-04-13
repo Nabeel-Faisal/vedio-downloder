@@ -9,11 +9,14 @@ const { spawn, execSync } = require('child_process');
 const youtubedl = require('youtube-dl-exec');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Set cache directory for yt-dlp
+process.env.XDG_CACHE_HOME = path.join(__dirname, '.cache');
 
 // Health Check
 app.get('/health', (req, res) => res.status(200).json({ ok: true, port: PORT }));
@@ -50,6 +53,7 @@ app.get('/api/diag', (req, res) => {
 // Helper for common yt-dlp options
 function getYtDlpOptions(url, extra = {}) {
     const isInstagram = url.includes('instagram.com');
+    const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
     let domain = new URL(url).hostname.replace('www.', '');
     if (domain === 'youtu.be') domain = 'youtube.com';
     
@@ -65,10 +69,27 @@ function getYtDlpOptions(url, extra = {}) {
         geoBypass: true,
         addHeader: [
             `referer:https://www.${domain}/`,
-            `user-agent:${userAgent}`
+            `user-agent:${userAgent}`,
+            'accept-language:en-US,en;q=0.9',
         ],
         ...extra
     };
+
+    // YouTube specific improvements
+    if (isYoutube) {
+        options.extractorArgs = 'youtube:player-client=web,ios;player-skip=webpage,configs';
+        
+        // OAuth2 Support
+        if (process.env.YOUTUBE_OAUTH_TOKEN) {
+            options.username = 'oauth2';
+        }
+
+        // PO_TOKEN support (Proof of Origin)
+        if (process.env.PO_TOKEN) {
+            const visitorData = process.env.VISITOR_DATA || '';
+            options.extractorArgs += `;po_token=web+${process.env.PO_TOKEN}${visitorData ? ':' + visitorData : ''}`;
+        }
+    }
 
     if (fs.existsSync(path.join(__dirname, 'cookies.txt'))) {
         options.cookies = path.join(__dirname, 'cookies.txt');
@@ -125,10 +146,18 @@ app.post('/api/info', async (req, res) => {
         });
     } catch (err) {
         console.error('[/api/info] Error:', err.message);
+        
+        let errorMessage = 'Failed to fetch video info.';
+        if (err.message.includes('429')) {
+            errorMessage = 'YouTube is rate-limiting this request (Error 429).';
+        } else if (err.message.includes('confirm you\'re not a bot')) {
+            errorMessage = 'YouTube detected automated traffic.';
+        }
+
         res.status(500).json({ 
-            error: 'Failed to fetch video info.', 
+            error: errorMessage, 
             details: err.message,
-            tip: 'If this is on Railway, check if yt-dlp is installed via nixPkgs.' 
+            tip: 'Providing cookies.txt or a PO_TOKEN is the most reliable fix for YouTube blocks.' 
         });
     }
 });
@@ -202,12 +231,39 @@ function runYtDlp(args) {
     });
 }
 
+// ── Initialization ──────────────────────────────────────────────────────────
+
+async function initOAuth() {
+    if (process.env.YOUTUBE_OAUTH_TOKEN) {
+        console.log('🔄 Injecting YouTube OAuth2 Token from environment...');
+        const cacheDir = path.join(process.env.XDG_CACHE_HOME, 'yt-dlp');
+        if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir, { recursive: true });
+
+        try {
+            // We expect a Base64 encoded JSON string
+            const decoded = Buffer.from(process.env.YOUTUBE_OAUTH_TOKEN, 'base64').toString();
+            const tokenData = JSON.parse(decoded);
+            
+            // yt-dlp saves tokens in youtube.cache as a binary/JSON hybrid, 
+            // but we can just write the cache file it expects.
+            // Specifically, for oauth2, it saves to youtube-oauth2.cache or similar depending on version.
+            // The most robust way is to just write the file.
+            const cachePath = path.join(cacheDir, 'youtube.cache');
+            fs.writeFileSync(cachePath, JSON.stringify(tokenData));
+            console.log('✅ OAuth2 Cache injected successfully.');
+        } catch (e) {
+            console.error('❌ Failed to inject OAuth2 token:', e.message);
+        }
+    }
+}
+
 // ── Start ─────────────────────────────────────────────────────────────────────
-app.listen(PORT, (err) => {
+app.listen(PORT, async (err) => {
     if (err) {
         console.error('❌ Failed to start server:', err);
         process.exit(1);
     }
+    await initOAuth();
     console.log(`🎬 Server is LIVE on port ${PORT}`);
     console.log(`🔍 yt-dlp path: ${systemYtDlp}`);
 });
