@@ -48,10 +48,12 @@ app.post('/api/cookies', express.text({ type: '*/*', limit: '4mb' }), (req, res)
 app.get('/api/cookies/status', (req, res) => {
     const cookiePath = path.join(__dirname, 'cookies.txt');
     try {
-        const exists = fs.existsSync(cookiePath) && fs.statSync(cookiePath).size > 20;
-        res.json({ hasCookies: exists });
+        if (!fs.existsSync(cookiePath)) return res.json({ hasCookies: false, entries: 0, reason: 'no file' });
+        const content = fs.readFileSync(cookiePath, 'utf8');
+        const entries = content.split('\n').filter(l => l && !l.startsWith('#')).length;
+        res.json({ hasCookies: entries > 0, entries, sizeBytes: content.length });
     } catch (e) {
-        res.json({ hasCookies: false });
+        res.json({ hasCookies: false, entries: 0, reason: e.message });
     }
 });
 
@@ -282,12 +284,14 @@ async function initCookies() {
             const raw = Buffer.from(process.env.COOKIES_B64, 'base64');
             let content;
             try {
-                content = zlib.gunzipSync(raw).toString('utf8'); // compressed
+                content = zlib.gunzipSync(raw).toString('utf8');
             } catch {
-                content = raw.toString('utf8'); // plain base64 fallback
+                content = raw.toString('utf8');
             }
             fs.writeFileSync(cookiePath, content);
-            console.log('✅ Cookies loaded from COOKIES_B64 env var.');
+            const lines = content.split('\n').filter(l => l && !l.startsWith('#')).length;
+            console.log(`✅ Cookies loaded from COOKIES_B64 — ${lines} cookie entries, ${content.length} chars.`);
+            if (lines === 0) console.warn('⚠️  WARNING: cookies.txt has 0 entries — COOKIES_B64 may be empty or invalid!');
         } catch (e) {
             console.error('❌ Failed to decode COOKIES_B64:', e.message);
         }
