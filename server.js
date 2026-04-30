@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { spawn, execSync } = require('child_process');
+const zlib = require('zlib');
 const youtubedl = require('youtube-dl-exec');
 
 const app = express();
@@ -278,8 +279,14 @@ async function initCookies() {
 
     if (process.env.COOKIES_B64) {
         try {
-            const decoded = Buffer.from(process.env.COOKIES_B64, 'base64').toString('utf8');
-            fs.writeFileSync(cookiePath, decoded);
+            const raw = Buffer.from(process.env.COOKIES_B64, 'base64');
+            let content;
+            try {
+                content = zlib.gunzipSync(raw).toString('utf8'); // compressed
+            } catch {
+                content = raw.toString('utf8'); // plain base64 fallback
+            }
+            fs.writeFileSync(cookiePath, content);
             console.log('✅ Cookies loaded from COOKIES_B64 env var.');
         } catch (e) {
             console.error('❌ Failed to decode COOKIES_B64:', e.message);
