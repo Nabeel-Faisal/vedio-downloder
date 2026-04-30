@@ -273,6 +273,27 @@ function runYtDlp(args) {
 
 // ── Initialization ──────────────────────────────────────────────────────────
 
+async function initCookies() {
+    const cookiePath = path.join(__dirname, 'cookies.txt');
+
+    if (process.env.COOKIES_B64) {
+        try {
+            const decoded = Buffer.from(process.env.COOKIES_B64, 'base64').toString('utf8');
+            fs.writeFileSync(cookiePath, decoded);
+            console.log('✅ Cookies loaded from COOKIES_B64 env var.');
+        } catch (e) {
+            console.error('❌ Failed to decode COOKIES_B64:', e.message);
+        }
+        return;
+    }
+
+    if (fs.existsSync(cookiePath) && fs.statSync(cookiePath).size > 20) {
+        console.log('✅ Using existing cookies.txt.');
+    } else {
+        console.log('⚠️  No cookies configured — Instagram/YouTube may rate-limit.');
+    }
+}
+
 async function initOAuth() {
     if (process.env.YOUTUBE_OAUTH_TOKEN) {
         console.log('🔄 Injecting YouTube OAuth2 Token from environment...');
@@ -303,6 +324,7 @@ app.listen(PORT, async (err) => {
         console.error('❌ Failed to start server:', err);
         process.exit(1);
     }
+    await initCookies();
     await initOAuth();
     console.log(`🎬 Server is LIVE on port ${PORT}`);
     console.log(`🔍 yt-dlp path: ${systemYtDlp}`);
