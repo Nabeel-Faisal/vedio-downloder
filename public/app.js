@@ -1,6 +1,7 @@
 /* ── State ───────────────────────────────────────────────────────────────── */
 const API = '';          // same origin
 let currentFormats = [];
+let pendingRetryAfterCookies = false;
 
 /* ── DOM ─────────────────────────────────────────────────────────────────── */
 const urlInput = document.getElementById('urlInput');
@@ -21,6 +22,15 @@ const downloadBtn = document.getElementById('downloadBtn');
 const downloadBtnText = document.getElementById('downloadBtnText');
 const downloadSpinner = document.getElementById('downloadSpinner');
 const downloadNote = document.getElementById('downloadNote');
+const cookieModal = document.getElementById('cookieModal');
+const cookieTextarea = document.getElementById('cookieTextarea');
+const saveCookiesBtn = document.getElementById('saveCookiesBtn');
+const skipCookiesBtn = document.getElementById('skipCookiesBtn');
+const setupCookiesBtn = document.getElementById('setupCookiesBtn');
+const backBtn = document.getElementById('backBtn');
+const cookieBtn = document.getElementById('cookieBtn');
+const consentView = document.getElementById('consentView');
+const setupView = document.getElementById('setupView');
 
 /* ── Helpers ─────────────────────────────────────────────────────────────── */
 function formatDuration(secs) {
@@ -56,6 +66,65 @@ function hideError() {
     errorMsg.classList.add('hidden');
 }
 
+/* ── Cookie Modal ────────────────────────────────────────────────────────── */
+function showCookieModal(retry = false) {
+    pendingRetryAfterCookies = retry;
+    showConsentView();
+    cookieModal.classList.remove('hidden');
+}
+
+function hideCookieModal() {
+    cookieModal.classList.add('hidden');
+    pendingRetryAfterCookies = false;
+}
+
+function showConsentView() {
+    consentView.classList.remove('hidden');
+    setupView.classList.add('hidden');
+}
+
+function showSetupView() {
+    consentView.classList.add('hidden');
+    setupView.classList.remove('hidden');
+    cookieTextarea.value = '';
+    cookieTextarea.focus();
+}
+
+async function saveCookies() {
+    const content = cookieTextarea.value.trim();
+    if (!content) { alert('Please paste your cookies.txt content first.'); return; }
+
+    saveCookiesBtn.textContent = 'Saving…';
+    saveCookiesBtn.disabled = true;
+
+    try {
+        const resp = await fetch(`${API}/api/cookies`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: content,
+        });
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(data.error || 'Failed to save cookies');
+
+        hideCookieModal();
+        if (pendingRetryAfterCookies) fetchInfo();
+    } catch (err) {
+        alert(`❌ ${err.message}`);
+    } finally {
+        saveCookiesBtn.textContent = '💾 Save & Done';
+        saveCookiesBtn.disabled = false;
+    }
+}
+
+/* ── First-visit auto-check ──────────────────────────────────────────────── */
+async function checkCookieSetup() {
+    try {
+        const resp = await fetch(`${API}/api/cookies/status`);
+        const { hasCookies } = await resp.json();
+        if (!hasCookies) showCookieModal(false);
+    } catch (e) { /* ignore network errors */ }
+}
+
 /* ── Fetch Video Info ────────────────────────────────────────────────────── */
 async function fetchInfo() {
     const url = urlInput.value.trim();
@@ -76,8 +145,9 @@ async function fetchInfo() {
 
         const data = await resp.json();
         if (!resp.ok) {
-            const msg = data.details ? `${data.error} (${data.details})` : data.error;
-            throw new Error(msg || 'Failed to fetch video info');
+            const err = new Error(data.error || 'Failed to fetch video info');
+            err.needsCookies = !!data.needsCookies;
+            throw err;
         }
 
         // Populate card
@@ -106,6 +176,7 @@ async function fetchInfo() {
 
     } catch (err) {
         showError(`❌ ${err.message}`);
+        if (err.needsCookies) showCookieModal(true);
     } finally {
         fetchBtn.disabled = false;
         fetchBtnText.textContent = 'Fetch';
@@ -172,6 +243,15 @@ async function startDownload() {
 fetchBtn.addEventListener('click', fetchInfo);
 urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') fetchInfo(); });
 downloadBtn.addEventListener('click', startDownload);
+cookieBtn.addEventListener('click', () => showCookieModal(false));
+setupCookiesBtn.addEventListener('click', showSetupView);
+backBtn.addEventListener('click', showConsentView);
+saveCookiesBtn.addEventListener('click', saveCookies);
+skipCookiesBtn.addEventListener('click', hideCookieModal);
+cookieModal.addEventListener('click', (e) => { if (e.target === cookieModal) hideCookieModal(); });
+
+// Auto-show setup dialog on first visit if cookies are not configured
+checkCookieSetup();
 
 // Auto-paste & fetch
 urlInput.addEventListener('paste', () => {

@@ -551,6 +551,30 @@ body {
   }
 }
 
+/* ── Cookie Hint ── */
+.cookie-hint {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--sub);
+}
+
+.btn-cookies {
+  background: transparent;
+  border: none;
+  color: var(--accent2);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.btn-cookies:hover {
+  color: var(--text);
+}
+
 /* ── Cookie Modal ── */
 .modal-overlay {
   position: fixed;
@@ -569,12 +593,45 @@ body {
   background: #1a1a2e;
   border: 1.5px solid var(--border);
   border-radius: 24px;
-  padding: 32px;
-  max-width: 440px;
+  padding: 36px 32px;
+  max-width: 460px;
   width: 100%;
   text-align: center;
   box-shadow: var(--shadow);
   animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Setup steps */
+.setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+  text-align: left;
+}
+
+.setup-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.88rem;
+  color: var(--sub);
+  line-height: 1.5;
+}
+
+.step-num {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, var(--accent1), var(--accent2));
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
 }
 
 @keyframes scaleUp {
@@ -599,6 +656,13 @@ body {
   font-weight: 800;
   margin-bottom: 12px;
   color: var(--text);
+}
+
+.modal-text {
+  font-size: 0.92rem;
+  color: var(--sub);
+  line-height: 1.65;
+  margin-bottom: 16px;
 }
 
 .modal-text b {

@@ -29,6 +29,31 @@ try {
     // Falls back to search in PATH
 }
 
+// Save cookies from browser
+app.post('/api/cookies', express.text({ type: '*/*', limit: '4mb' }), (req, res) => {
+    const content = req.body;
+    if (!content || typeof content !== 'string' || content.trim().length < 10) {
+        return res.status(400).json({ error: 'Cookie content appears empty or invalid.' });
+    }
+    try {
+        fs.writeFileSync(path.join(__dirname, 'cookies.txt'), content.trim() + '\n');
+        res.json({ ok: true });
+    } catch (e) {
+        res.status(500).json({ error: 'Failed to save cookies: ' + e.message });
+    }
+});
+
+// Check if cookies are already configured
+app.get('/api/cookies/status', (req, res) => {
+    const cookiePath = path.join(__dirname, 'cookies.txt');
+    try {
+        const exists = fs.existsSync(cookiePath) && fs.statSync(cookiePath).size > 20;
+        res.json({ hasCookies: exists });
+    } catch (e) {
+        res.json({ hasCookies: false });
+    }
+});
+
 // Diag Route
 app.get('/api/diag', (req, res) => {
     const results = {
@@ -74,6 +99,13 @@ function getYtDlpOptions(url, extra = {}) {
         ],
         ...extra
     };
+
+    // Instagram: slow down to avoid rate-limits
+    if (isInstagram) {
+        options.sleepRequests = 2;
+        options.retries = 5;
+        options.fragmentRetries = 5;
+    }
 
     // YouTube specific improvements
     if (isYoutube) {
@@ -147,17 +179,25 @@ app.post('/api/info', async (req, res) => {
     } catch (err) {
         console.error('[/api/info] Error:', err.message);
         
+        const msg = err.message || '';
         let errorMessage = 'Failed to fetch video info.';
-        if (err.message.includes('429')) {
-            errorMessage = 'YouTube is rate-limiting this request (Error 429).';
-        } else if (err.message.includes('confirm you\'re not a bot')) {
-            errorMessage = 'YouTube detected automated traffic.';
+        let needsCookies = false;
+
+        if (msg.includes('429') || msg.includes('rate-limit') || msg.includes('rate limit')) {
+            errorMessage = 'Rate-limited by the platform (Error 429). Adding cookies will fix this.';
+            needsCookies = true;
+        } else if (msg.includes('login required') || msg.includes('login page') || msg.includes('not available') || msg.includes('cookies')) {
+            errorMessage = 'Login or cookies required to access this content.';
+            needsCookies = true;
+        } else if (msg.includes('confirm you\'re not a bot')) {
+            errorMessage = 'Bot detection triggered. Adding cookies will fix this.';
+            needsCookies = true;
         }
 
-        res.status(500).json({ 
-            error: errorMessage, 
-            details: err.message,
-            tip: 'Providing cookies.txt or a PO_TOKEN is the most reliable fix for YouTube blocks.' 
+        res.status(500).json({
+            error: errorMessage,
+            details: msg,
+            needsCookies,
         });
     }
 });
