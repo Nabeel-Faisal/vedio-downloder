@@ -42,7 +42,6 @@
         </button>
       </div>
       <p id="errorMsg" class="error-msg hidden"></p>
-      <p class="cookie-hint">Instagram / YouTube blocked? <button id="cookieBtn" class="btn-cookies">🍪 Add Cookies</button></p>
     </section>
 
     <!-- ── Video Preview Card ── -->
@@ -97,46 +96,6 @@
     <footer class="footer">Powered by yt-dlp &mdash; no account needed, no watermarks</footer>
   </div>
 
-  <!-- Cookie Setup Modal -->
-  <div id="cookieModal" class="modal-overlay hidden">
-    <div class="modal-content consent-modal">
-
-      <!-- Stage 1: Consent view -->
-      <div id="consentView">
-        <div class="cookie-icon">🍪</div>
-        <h2 class="modal-title">One-Time Setup Required</h2>
-        <p class="modal-text">
-          To download from <b>Instagram</b> and <b>YouTube</b>, this tool needs your
-          session cookies — just once. After setup, <b>all downloads work automatically</b>
-          with no more errors or interruptions.
-        </p>
-        <p class="modal-hint" style="margin-bottom:24px;">
-          Your cookies are stored only on this server and used solely for downloading videos.
-        </p>
-        <div class="modal-actions">
-          <button id="setupCookiesBtn" class="btn-modal btn-accept">✅ Set Up Now</button>
-          <button id="skipCookiesBtn" class="btn-modal btn-reject">Skip for Now</button>
-        </div>
-      </div>
-
-      <!-- Stage 2: Input view -->
-      <div id="setupView" class="hidden">
-        <h2 class="modal-title" style="margin-bottom:14px;">Paste Your Cookies</h2>
-        <div class="setup-steps">
-          <div class="setup-step"><span class="step-num">1</span> Install <b>"Get cookies.txt LOCALLY"</b> browser extension</div>
-          <div class="setup-step"><span class="step-num">2</span> Open <b>Instagram</b> or <b>YouTube</b> while logged in</div>
-          <div class="setup-step"><span class="step-num">3</span> Click the extension icon → Export cookies → Paste below</div>
-        </div>
-        <textarea id="cookieTextarea" class="cookie-textarea" placeholder="# Netscape HTTP Cookie File&#10;.instagram.com	TRUE	/	TRUE	0	sessionid	YOUR_VALUE"></textarea>
-        <p class="modal-hint">One cookies file works for both Instagram &amp; YouTube permanently.</p>
-        <div class="modal-actions">
-          <button id="saveCookiesBtn" class="btn-modal btn-accept">💾 Save &amp; Done</button>
-          <button id="backBtn" class="btn-modal btn-reject">← Back</button>
-        </div>
-      </div>
-
-    </div>
-  </div>
 
   <script src="app.js"></script>
 </body>
