@@ -112,22 +112,24 @@ function getYtDlpOptions(url, extra = {}) {
 
     // YouTube specific improvements
     if (isYoutube) {
-        options.extractorArgs = 'youtube:player-client=web,ios;player-skip=webpage,configs';
-        
-        // OAuth2 Support
+        // android_embedded bypasses bot detection for public videos without needing cookies
+        options.extractorArgs = 'youtube:player_client=android_embedded,web,ios';
+        options.retries = 5;
+        options.fragmentRetries = 5;
+
         if (process.env.YOUTUBE_OAUTH_TOKEN) {
             options.username = 'oauth2';
         }
 
-        // PO_TOKEN support (Proof of Origin)
         if (process.env.PO_TOKEN) {
             const visitorData = process.env.VISITOR_DATA || '';
             options.extractorArgs += `;po_token=web+${process.env.PO_TOKEN}${visitorData ? ':' + visitorData : ''}`;
         }
     }
 
-    if (fs.existsSync(path.join(__dirname, 'cookies.txt'))) {
-        options.cookies = path.join(__dirname, 'cookies.txt');
+    const cookiePath = path.join(__dirname, 'cookies.txt');
+    if (fs.existsSync(cookiePath) && fs.statSync(cookiePath).size > 20) {
+        options.cookies = cookiePath;
     }
     return options;
 }
@@ -187,14 +189,18 @@ app.post('/api/info', async (req, res) => {
         let needsCookies = false;
 
         if (msg.includes('429') || msg.includes('rate-limit') || msg.includes('rate limit')) {
-            errorMessage = 'Rate-limited by the platform (Error 429). Adding cookies will fix this.';
+            errorMessage = 'Rate-limited by the platform (Error 429). Try again in a moment.';
             needsCookies = true;
-        } else if (msg.includes('login required') || msg.includes('login page') || msg.includes('not available') || msg.includes('cookies')) {
+        } else if (msg.includes('login required') || msg.includes('login page') || msg.includes('cookies')) {
             errorMessage = 'Login or cookies required to access this content.';
             needsCookies = true;
-        } else if (msg.includes('confirm you\'re not a bot')) {
-            errorMessage = 'Bot detection triggered. Adding cookies will fix this.';
+        } else if (msg.includes('confirm you\'re not a bot') || msg.includes('Sign in to confirm')) {
+            errorMessage = 'YouTube bot detection triggered. Try again or use a different video.';
             needsCookies = true;
+        } else if (msg.includes('Video unavailable') || msg.includes('not available')) {
+            errorMessage = 'This video is unavailable or private.';
+        } else if (msg.includes('Premiere') || msg.includes('upcoming')) {
+            errorMessage = 'This video is a scheduled premiere and not yet available.';
         }
 
         res.status(500).json({
