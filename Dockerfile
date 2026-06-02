@@ -35,4 +35,4 @@ COPY . .
 EXPOSE 3000
 
 # Start the application
-CMD if [ -n "$COOKIES_CONTENT" ]; then echo "$COOKIES_CONTENT" > cookies.txt; fi && node server.js
+CMD yt-dlp -U --quiet 2>/dev/null || true && node server.js
