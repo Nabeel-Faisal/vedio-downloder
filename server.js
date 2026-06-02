@@ -136,19 +136,39 @@ function getYtDlpOptions(url, extra = {}) {
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 
+const INVALID_COOKIE_SIGNALS = ['no longer valid', 'cookies have been rotated', 'cookies are invalid'];
+
+function cookiesInvalid(msg) {
+    return INVALID_COOKIE_SIGNALS.some(s => msg.toLowerCase().includes(s));
+}
+
+async function runInfo(url, useCookies = true) {
+    const executor = (systemYtDlp && systemYtDlp !== 'yt-dlp')
+        ? youtubedl.create(systemYtDlp)
+        : youtubedl;
+    const opts = getYtDlpOptions(url, { dumpJson: true });
+    if (!useCookies) delete opts.cookies;
+    return executor(url, opts);
+}
+
 app.post('/api/info', async (req, res) => {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
 
     try {
         console.log(`[info] Fetching: ${url}`);
-        
-        // Use custom yt-dlp path if we found one
-        const executor = (systemYtDlp && systemYtDlp !== 'yt-dlp') 
-            ? youtubedl.create(systemYtDlp) 
-            : youtubedl;
 
-        const info = await executor(url, getYtDlpOptions(url, { dumpJson: true }));
+        let info;
+        try {
+            info = await runInfo(url, true);
+        } catch (firstErr) {
+            if (cookiesInvalid(firstErr.message || '')) {
+                console.warn('[info] Cookies invalid — retrying without cookies...');
+                info = await runInfo(url, false);
+            } else {
+                throw firstErr;
+            }
+        }
 
         const formats = [];
         formats.push({ id: 'bestvideo+bestaudio/best', label: '🏆 Best Quality (auto)', ext: 'mp4' });
