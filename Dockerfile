@@ -35,4 +35,4 @@ COPY . .
 EXPOSE 3000
 
 # Start the application
-CMD yt-dlp -U --quiet 2>/dev/null || true && node server.js
+CMD curl -fsSL https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && chmod a+rx /usr/local/bin/yt-dlp && node server.js

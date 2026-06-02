@@ -112,8 +112,6 @@ function getYtDlpOptions(url, extra = {}) {
 
     // YouTube specific improvements
     if (isYoutube) {
-        // tv_embedded bypasses bot detection without requiring cookies (android_embedded is deprecated in newer yt-dlp)
-        options.extractorArgs = 'youtube:player_client=tv_embedded,android,web';
         options.retries = 5;
         options.fragmentRetries = 5;
 
