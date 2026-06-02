@@ -77,7 +77,8 @@ async function fetchInfo() {
 
         const data = await resp.json();
         if (!resp.ok) {
-            const err = new Error(data.error || 'Failed to fetch video info');
+            const detail = data.details ? `\n\nDetails: ${data.details.slice(0, 300)}` : '';
+            const err = new Error((data.error || 'Failed to fetch video info') + detail);
             err.needsCookies = !!data.needsCookies;
             throw err;
         }
