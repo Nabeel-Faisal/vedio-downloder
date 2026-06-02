@@ -1,103 +1,204 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VideoGrab – Download Any Video</title>
-  <meta name="description"
-    content="Download videos from YouTube, TikTok, Instagram, Twitter, Vimeo, Reddit, and 1000+ more sites instantly." />
+  <title>VideoGrab – Download Any Video Instantly</title>
+  <meta name="description" content="Download videos from YouTube, TikTok, Instagram, Twitter, Vimeo, Reddit and 1000+ sites. Free, fast, no watermarks." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
-
 <body>
-  <!-- Background orbs -->
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <div class="bg-orb orb-3"></div>
 
-  <div class="container">
+  <!-- ── Animated Background ── -->
+  <div class="bg-canvas">
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
+    <div class="grid-overlay"></div>
+    <div id="particles" class="particles"></div>
+  </div>
 
-    <!-- ── Header ── -->
-    <header class="hero">
+  <!-- ── Nav ── -->
+  <nav class="nav">
+    <div class="nav-inner">
       <div class="logo">
-        <span class="logo-icon">▶</span>
+        <div class="logo-icon-wrap"><span>▶</span></div>
         <span class="logo-text">VideoGrab</span>
       </div>
-      <h1 class="hero-title">Download Any Video,<br /><span class="gradient-text">Instantly.</span></h1>
-      <p class="hero-sub">YouTube · TikTok · Instagram · Twitter · Vimeo · Reddit · and 1000+ more</p>
-    </header>
+      <div class="nav-pill">✦ Free Forever</div>
+    </div>
+  </nav>
 
-    <!-- ── Search Bar ── -->
-    <section class="search-section">
-      <div class="search-bar" id="searchBar">
-        <span class="search-icon">🔗</span>
-        <input type="url" id="urlInput" placeholder="Paste video URL here…" autocomplete="off" spellcheck="false" />
-        <button id="fetchBtn" class="btn-fetch">
-          <span id="fetchBtnText">Fetch</span>
-          <span id="fetchSpinner" class="spinner hidden"></span>
-        </button>
+  <main class="page">
+
+    <!-- ── Hero ── -->
+    <section class="hero">
+      <div class="hero-tag">
+        <span class="tag-pulse"></span>
+        No account · No watermarks · 1000+ sites
       </div>
-      <p id="errorMsg" class="error-msg hidden"></p>
+
+      <h1 class="hero-title">
+        Download Any Video,<br />
+        <span class="gradient-text">Instantly.</span>
+      </h1>
+
+      <p class="hero-sub">
+        The fastest way to save videos from YouTube, TikTok, Instagram,<br class="br-desktop" />
+        Twitter, Vimeo, Reddit and 1000+ more platforms.
+      </p>
+
+      <!-- Stats strip -->
+      <div class="stats-strip">
+        <div class="stat-item">
+          <span class="stat-num" data-count="1000">0</span><span class="stat-plus">+</span>
+          <span class="stat-label">Sites Supported</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-item">
+          <span class="stat-num">4K</span>
+          <span class="stat-label">Max Quality</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat-item">
+          <span class="stat-num">100%</span>
+          <span class="stat-label">Free Forever</span>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="search-wrap">
+        <div class="search-glow"></div>
+        <div class="search-bar" id="searchBar">
+          <span class="search-icon">🔗</span>
+          <input type="url" id="urlInput" placeholder="Paste any video URL here…" autocomplete="off" spellcheck="false" />
+          <button id="fetchBtn" class="btn-fetch">
+            <span id="fetchBtnText">Fetch Video</span>
+            <span id="fetchSpinner" class="spinner hidden"></span>
+          </button>
+        </div>
+        <p id="errorMsg" class="error-msg hidden"></p>
+        <p class="search-hint">↑ Works with YouTube · TikTok · Instagram · Twitter · Vimeo and more</p>
+      </div>
     </section>
 
-    <!-- ── Video Preview Card ── -->
+    <!-- ── Video Card ── -->
     <section id="videoCard" class="video-card hidden">
       <div class="card-inner">
         <div class="thumbnail-wrap">
           <img id="thumbnail" src="" alt="Video thumbnail" />
-          <div class="play-overlay">▶</div>
+          <div class="play-overlay"><span>▶</span></div>
           <span id="duration" class="duration-badge"></span>
         </div>
         <div class="card-info">
           <span id="platform" class="platform-badge"></span>
           <h2 id="videoTitle" class="video-title"></h2>
           <p id="uploader" class="video-uploader"></p>
-          <div class="video-stats">
-            <span id="viewCount" class="stat"></span>
-            <span id="likeCount" class="stat"></span>
+          <div class="video-stats-row">
+            <span id="viewCount" class="vstat"></span>
+            <span id="likeCount" class="vstat"></span>
           </div>
-
-          <!-- Format selector -->
           <div class="format-section">
             <label class="format-label" for="formatSelect">Quality / Format</label>
             <select id="formatSelect" class="format-select"></select>
           </div>
-
           <button id="downloadBtn" class="btn-download">
             <span class="dl-icon">⬇</span>
             <span id="downloadBtnText">Download</span>
             <span id="downloadSpinner" class="spinner hidden"></span>
           </button>
-          <p id="downloadNote" class="download-note hidden">⏳ Preparing your download… this may take a moment.</p>
+          <p id="downloadNote" class="download-note hidden">⏳ Preparing your file… this may take a moment.</p>
         </div>
       </div>
     </section>
 
-    <!-- ── Supported Platforms ── -->
-    <section class="platforms">
-      <p class="platforms-title">Supported Platforms</p>
-      <div class="platforms-grid">
-        <div class="platform-chip">🎬 YouTube</div>
-        <div class="platform-chip">🎵 TikTok</div>
-        <div class="platform-chip">📸 Instagram</div>
-        <div class="platform-chip">🐦 Twitter / X</div>
-        <div class="platform-chip">🎞 Vimeo</div>
-        <div class="platform-chip">🤖 Reddit</div>
-        <div class="platform-chip">📘 Facebook</div>
-        <div class="platform-chip">🔊 SoundCloud</div>
-        <div class="platform-chip">✨ 1000+ more</div>
+    <!-- ── Features ── -->
+    <section class="features reveal-section">
+      <p class="section-eyebrow">WHY VIDEOGRAB</p>
+      <h2 class="section-title">Built for speed &amp; simplicity</h2>
+      <div class="features-grid">
+        <div class="feature-card tilt-card">
+          <div class="feature-glow"></div>
+          <div class="feature-icon-wrap">⚡</div>
+          <h3 class="feature-title">Lightning Fast</h3>
+          <p class="feature-desc">Instant video info fetch and direct download. No queues, no waiting, no ads.</p>
+        </div>
+        <div class="feature-card tilt-card">
+          <div class="feature-glow"></div>
+          <div class="feature-icon-wrap">🎯</div>
+          <h3 class="feature-title">Any Quality</h3>
+          <p class="feature-desc">From 144p up to 4K Ultra HD. Audio-only MP3 exports included.</p>
+        </div>
+        <div class="feature-card tilt-card">
+          <div class="feature-glow"></div>
+          <div class="feature-icon-wrap">🛡️</div>
+          <h3 class="feature-title">Clean Files</h3>
+          <p class="feature-desc">Original video files with zero watermarks, zero branding, zero compression.</p>
+        </div>
       </div>
     </section>
 
-    <footer class="footer">Powered by yt-dlp &mdash; no account needed, no watermarks</footer>
-  </div>
+    <!-- ── How it works ── -->
+    <section class="how-it-works reveal-section">
+      <p class="section-eyebrow">HOW IT WORKS</p>
+      <h2 class="section-title">Three steps, done in seconds</h2>
+      <div class="steps-row">
+        <div class="step-card">
+          <div class="step-number">01</div>
+          <div class="step-icon">📋</div>
+          <h3 class="step-title">Paste URL</h3>
+          <p class="step-desc">Copy any video link and paste it into the search bar above.</p>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-card">
+          <div class="step-number">02</div>
+          <div class="step-icon">🎛️</div>
+          <h3 class="step-title">Pick Quality</h3>
+          <p class="step-desc">Choose your resolution — from HD to 4K — or grab audio only.</p>
+        </div>
+        <div class="step-arrow">→</div>
+        <div class="step-card">
+          <div class="step-number">03</div>
+          <div class="step-icon">💾</div>
+          <h3 class="step-title">Download</h3>
+          <p class="step-desc">Hit download and the file saves directly to your device. Done.</p>
+        </div>
+      </div>
+    </section>
 
+    <!-- ── Platforms ── -->
+    <section class="platforms reveal-section">
+      <p class="section-eyebrow">SUPPORTED PLATFORMS</p>
+      <h2 class="section-title">Works everywhere you watch</h2>
+      <div class="platforms-grid">
+        <div class="platform-chip"><span class="chip-icon">🎬</span> YouTube</div>
+        <div class="platform-chip"><span class="chip-icon">🎵</span> TikTok</div>
+        <div class="platform-chip"><span class="chip-icon">📸</span> Instagram</div>
+        <div class="platform-chip"><span class="chip-icon">🐦</span> Twitter / X</div>
+        <div class="platform-chip"><span class="chip-icon">🎞</span> Vimeo</div>
+        <div class="platform-chip"><span class="chip-icon">🤖</span> Reddit</div>
+        <div class="platform-chip"><span class="chip-icon">📘</span> Facebook</div>
+        <div class="platform-chip"><span class="chip-icon">🔊</span> SoundCloud</div>
+        <div class="platform-chip"><span class="chip-icon">📌</span> Pinterest</div>
+        <div class="platform-chip"><span class="chip-icon">💬</span> Twitch</div>
+        <div class="platform-chip"><span class="chip-icon">🎮</span> Dailymotion</div>
+        <div class="platform-chip highlight-chip"><span class="chip-icon">✨</span> 1000+ more</div>
+      </div>
+    </section>
+
+    <!-- ── Footer ── -->
+    <footer class="footer">
+      <div class="footer-logo">
+        <div class="logo-icon-wrap small"><span>▶</span></div>
+        <span class="logo-text">VideoGrab</span>
+      </div>
+      <p class="footer-text">Powered by yt-dlp &mdash; Free, open and always will be.</p>
+    </footer>
+
+  </main>
 
   <script src="app.js"></script>
 </body>
-
 </html>

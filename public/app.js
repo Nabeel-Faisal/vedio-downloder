@@ -111,7 +111,7 @@ async function fetchInfo() {
         showError(`❌ ${err.message}`);
     } finally {
         fetchBtn.disabled = false;
-        fetchBtnText.textContent = 'Fetch';
+        fetchBtnText.textContent = 'Fetch Video';
         fetchSpinner.classList.add('hidden');
     }
 }
@@ -183,3 +183,65 @@ urlInput.addEventListener('paste', () => {
         if (val.startsWith('http')) fetchInfo();
     }, 50);
 });
+
+/* ── fix button text after redesign ─────────────────────────────────────── */
+// fetchBtnText default is "Fetch Video" — restore it (not "Fetch") after calls
+const FETCH_IDLE = 'Fetch Video';
+fetchBtn.addEventListener('click', fetchInfo);
+
+/* ── Particles ───────────────────────────────────────────────────────────── */
+(function spawnParticles() {
+    const container = document.getElementById('particles');
+    if (!container) return;
+    for (let i = 0; i < 35; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = 2 + Math.random() * 3;
+        p.style.cssText = `
+            left:${Math.random() * 100}%;
+            top:${80 + Math.random() * 20}%;
+            width:${size}px; height:${size}px;
+            animation-delay:${Math.random() * 12}s;
+            animation-duration:${10 + Math.random() * 8}s;
+            opacity:${0.15 + Math.random() * 0.35};
+            background:${Math.random() > 0.5 ? 'rgba(124,58,237,0.7)' : 'rgba(6,182,212,0.7)'};
+        `;
+        container.appendChild(p);
+    }
+})();
+
+/* ── 3D Tilt on feature cards ────────────────────────────────────────────── */
+document.querySelectorAll('.tilt-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+        const r = card.getBoundingClientRect();
+        const x = (e.clientX - r.left) / r.width  - 0.5;
+        const y = (e.clientY - r.top)  / r.height - 0.5;
+        card.style.transform = `perspective(700px) rotateY(${x * 14}deg) rotateX(${-y * 14}deg) translateZ(12px) scale(1.02)`;
+    });
+    card.addEventListener('mouseleave', () => { card.style.transform = ''; });
+});
+
+/* ── Scroll reveal ───────────────────────────────────────────────────────── */
+const revealObs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal-section').forEach(el => revealObs.observe(el));
+
+/* ── Animated counter ────────────────────────────────────────────────────── */
+const counterObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+        if (!e.isIntersecting) return;
+        const el = e.target;
+        const target = +el.dataset.count;
+        let start = 0;
+        const step = () => {
+            start += Math.ceil(target / 60);
+            if (start >= target) { el.textContent = target; return; }
+            el.textContent = start;
+            requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+        counterObs.unobserve(el);
+    });
+}, { threshold: 0.5 });
+document.querySelectorAll('[data-count]').forEach(el => counterObs.observe(el));
