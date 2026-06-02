@@ -117,6 +117,21 @@ body {
 .logo-icon-wrap.small { width:28px; height:28px; border-radius:8px; font-size:12px; }
 .logo-text { font-size:18px; font-weight:800; letter-spacing:-0.5px; color:var(--text); }
 
+.logo-img {
+  height: 44px;
+  width: auto;
+  border-radius: 10px;
+  background: #fff;
+  padding: 4px 8px;
+  display: block;
+  object-fit: contain;
+}
+.logo-img-sm {
+  height: 52px;
+  padding: 5px 10px;
+  border-radius: 12px;
+}
+
 .nav-pill {
   font-size: 0.75rem;
   font-weight: 600;
