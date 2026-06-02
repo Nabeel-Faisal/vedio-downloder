@@ -118,18 +118,15 @@ body {
 .logo-text { font-size:18px; font-weight:800; letter-spacing:-0.5px; color:var(--text); }
 
 .logo-img {
-  height: 44px;
+  height: 42px;
   width: auto;
-  border-radius: 10px;
-  background: #fff;
-  padding: 4px 8px;
+  border-radius: 12px;
   display: block;
   object-fit: contain;
 }
 .logo-img-sm {
-  height: 52px;
-  padding: 5px 10px;
-  border-radius: 12px;
+  height: 60px;
+  border-radius: 16px;
 }
 
 .nav-pill {
