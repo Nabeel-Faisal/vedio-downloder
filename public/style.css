@@ -120,13 +120,13 @@ body {
 .logo-img {
   height: 64px;
   width: auto;
-  border-radius: 14px;
+  border-radius: 16px;
   display: block;
   object-fit: contain;
 }
 .logo-img-sm {
-  height: 80px;
-  border-radius: 18px;
+  height: 90px;
+  border-radius: 19px;
 }
 
 .nav-pill {
