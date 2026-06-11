@@ -20,7 +20,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 process.env.XDG_CACHE_HOME = path.join(__dirname, '.cache');
 
 // Health Check
-app.get('/health', (req, res) => res.status(200).json({ ok: true, port: PORT }));
+app.get('/health', (req, res) => res.status(200).json({ ok: true, port: PORT, build: 'pot-provider-2' }));
 
 // Get system yt-dlp path if available
 let systemYtDlp = 'yt-dlp';
@@ -64,15 +64,21 @@ app.get('/api/cookies/status', (req, res) => {
 });
 
 // Diag Route
-app.get('/api/diag', (req, res) => {
+app.get('/api/diag', async (req, res) => {
     const results = {
         path: process.env.PATH,
         node: process.version,
         platform: process.platform,
         cwd: process.cwd(),
         systemYtDlp,
+        proxyConfigured: Boolean(process.env.PROXY_URL),
+        potProvider: 'unreachable',
         bins: {}
     };
+    try {
+        const ping = await fetch('http://127.0.0.1:4416/ping', { signal: AbortSignal.timeout(3000) });
+        results.potProvider = ping.ok ? 'running' : `status ${ping.status}`;
+    } catch (e) { /* provider not running */ }
     const checkBins = ['yt-dlp', 'ffmpeg', 'python3', 'python'];
     for (const b of checkBins) {
         try {
@@ -101,6 +107,10 @@ function getYtDlpOptions(url, extra = {}) {
         noCheckCertificates: true,
         preferFreeFormats: true,
         geoBypass: true,
+        // Route yt-dlp through a proxy when the host's shared IP is
+        // rate-limited (HTTP 429) by YouTube. Set PROXY_URL in Railway, e.g.
+        // http://user:pass@host:port or socks5://host:port
+        ...(process.env.PROXY_URL ? { proxy: process.env.PROXY_URL } : {}),
         addHeader: [
             `referer:https://www.${domain}/`,
             `user-agent:${userAgent}`,
