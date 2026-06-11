@@ -30,6 +30,12 @@ try {
     // Falls back to search in PATH
 }
 
+// Always use the system yt-dlp (has the PO token plugin) instead of the
+// binary bundled with youtube-dl-exec.
+const ytdlp = (systemYtDlp && systemYtDlp !== 'yt-dlp')
+    ? youtubedl.create(systemYtDlp)
+    : youtubedl;
+
 // Save cookies from browser
 app.post('/api/cookies', express.text({ type: '*/*', limit: '4mb' }), (req, res) => {
     const content = req.body;
@@ -121,7 +127,7 @@ function getYtDlpOptions(url, extra = {}) {
 
         if (process.env.PO_TOKEN) {
             const visitorData = process.env.VISITOR_DATA || '';
-            options.extractorArgs += `;po_token=web+${process.env.PO_TOKEN}${visitorData ? ':' + visitorData : ''}`;
+            options.extractorArgs = `youtube:po_token=web+${process.env.PO_TOKEN}${visitorData ? ';visitor_data=' + visitorData : ''}`;
         }
     }
 
@@ -134,19 +140,21 @@ function getYtDlpOptions(url, extra = {}) {
 
 // ── Routes ───────────────────────────────────────────────────────────────────
 
-const INVALID_COOKIE_SIGNALS = ['no longer valid', 'cookies have been rotated', 'cookies are invalid'];
+// Stale/rotated cookies don't just fail — they actively trigger YouTube's
+// bot check, so a bot-check error is also a reason to retry without cookies.
+const INVALID_COOKIE_SIGNALS = [
+    'no longer valid', 'cookies have been rotated', 'cookies are invalid',
+    'not a bot', 'sign in to confirm',
+];
 
 function cookiesInvalid(msg) {
     return INVALID_COOKIE_SIGNALS.some(s => msg.toLowerCase().includes(s));
 }
 
 async function runInfo(url, useCookies = true) {
-    const executor = (systemYtDlp && systemYtDlp !== 'yt-dlp')
-        ? youtubedl.create(systemYtDlp)
-        : youtubedl;
     const opts = getYtDlpOptions(url, { dumpJson: true });
     if (!useCookies) delete opts.cookies;
-    return executor(url, opts);
+    return ytdlp(url, opts);
 }
 
 app.post('/api/info', async (req, res) => {
@@ -212,8 +220,8 @@ app.post('/api/info', async (req, res) => {
         } else if (msg.includes('login required') || msg.includes('login page') || msg.includes('cookies')) {
             errorMessage = 'Login or cookies required to access this content.';
             needsCookies = true;
-        } else if (msg.includes('confirm you\'re not a bot') || msg.includes('Sign in to confirm')) {
-            errorMessage = 'YouTube bot detection triggered. Try again or use a different video.';
+        } else if (msg.toLowerCase().includes('not a bot') || msg.includes('Sign in to confirm')) {
+            errorMessage = 'YouTube bot detection triggered. Your saved cookies may have expired — please upload fresh cookies.';
             needsCookies = true;
         } else if (msg.includes('Video unavailable') || msg.includes('not available')) {
             errorMessage = 'This video is unavailable or private.';
@@ -255,7 +263,17 @@ app.post('/api/download', async (req, res) => {
             dlOptions.format = formatId || 'bestvideo+bestaudio/best';
         }
 
-        await youtubedl(url, dlOptions);
+        try {
+            await ytdlp(url, dlOptions);
+        } catch (firstErr) {
+            if (cookiesInvalid(firstErr.message || '') && dlOptions.cookies) {
+                console.warn('[download] Cookies rejected — retrying without cookies...');
+                delete dlOptions.cookies;
+                await ytdlp(url, dlOptions);
+            } else {
+                throw firstErr;
+            }
+        }
 
         const pattern = `${path.basename(tmpBase)}`;
         const written = fs.readdirSync(tmpDir).find(f => f.startsWith(pattern));
