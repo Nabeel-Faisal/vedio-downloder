@@ -129,6 +129,8 @@ function getYtDlpOptions(url, extra = {}) {
     if (isYoutube) {
         options.retries = 5;
         options.fragmentRetries = 5;
+        // Allow yt-dlp to download JS challenge solvers from GitHub (uses Deno, already installed)
+        options.remoteComponents = 'ejs:github';
 
         if (process.env.YOUTUBE_OAUTH_TOKEN) {
             options.username = 'oauth2';
