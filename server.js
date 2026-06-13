@@ -105,7 +105,6 @@ function getYtDlpOptions(url, extra = {}) {
     const options = {
         noPlaylist: true,
         noCheckCertificates: true,
-        preferFreeFormats: true,
         geoBypass: true,
         // Route yt-dlp through a proxy when the host's shared IP is
         // rate-limited (HTTP 429) by YouTube. Set PROXY_URL in Railway, e.g.
@@ -199,7 +198,8 @@ app.post('/api/info', async (req, res) => {
 
         for (const h of availableHeights) {
             formats.push({
-                id: `bestvideo[height<=${h}]+bestaudio/best`,
+                // Fallback to best[height<=h] (combined stream) so audio is always present
+                id: `bestvideo[height<=${h}]+bestaudio/best[height<=${h}]/best`,
                 label: `${h}p`,
                 ext: 'mp4',
             });
