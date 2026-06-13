@@ -1,8 +1,6 @@
 # Use Node.js 20 as parent image
 FROM node:20-slim
 
-ARG BGUTIL_POT_VERSION=1.3.1
-
 # Install system dependencies.
 # yt-dlp is installed via pip (not the standalone binary) so it can load the
 # bgutil-ytdlp-pot-provider plugin — the standalone binary cannot see pip packages.
@@ -13,6 +11,7 @@ RUN apt-get update && \
     ffmpeg \
     curl \
     unzip \
+    jq \
     ca-certificates && \
     curl -fsSL https://deno.land/x/install/install.sh | sh && \
     mv /root/.deno/bin/deno /usr/local/bin/deno && \
@@ -20,10 +19,11 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Build the bgutil PO token provider server. It generates the PO tokens YouTube
-# now requires from datacenter IPs ("Sign in to confirm you're not a bot").
-RUN curl -fsSL https://github.com/Brainicism/bgutil-ytdlp-pot-provider/archive/refs/tags/${BGUTIL_POT_VERSION}.tar.gz | tar xz -C /opt && \
-    mv /opt/bgutil-ytdlp-pot-provider-${BGUTIL_POT_VERSION} /opt/bgutil-pot && \
+# Build the bgutil PO token provider server using the latest release.
+RUN BGUTIL_VERSION=$(curl -fsSL https://api.github.com/repos/Brainicism/bgutil-ytdlp-pot-provider/releases/latest | jq -r .tag_name) && \
+    echo "Building bgutil-ytdlp-pot-provider ${BGUTIL_VERSION}" && \
+    curl -fsSL "https://github.com/Brainicism/bgutil-ytdlp-pot-provider/archive/refs/tags/${BGUTIL_VERSION}.tar.gz" | tar xz -C /opt && \
+    mv /opt/bgutil-ytdlp-pot-provider-${BGUTIL_VERSION} /opt/bgutil-pot && \
     cd /opt/bgutil-pot/server && \
     npm ci && \
     npx tsc
