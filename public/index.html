@@ -3,93 +3,152 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Download My Video – Download Any Video Instantly</title>
+  <title>Download My Video — The Future of Video Downloading</title>
   <meta name="description" content="Download videos from YouTube, TikTok, Instagram, Twitter, Vimeo, Reddit and 1000+ sites. Free, fast, no watermarks." />
   <link rel="icon" type="image/png" href="logo2.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- ── Animated Background ── -->
-  <div class="bg-canvas">
-    <div class="bg-orb orb-1"></div>
-    <div class="bg-orb orb-2"></div>
-    <div class="bg-orb orb-3"></div>
-    <div class="grid-overlay"></div>
+  <!-- Custom cursor -->
+  <div class="cursor-dot" id="cursorDot"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- Animated cosmic background -->
+  <div class="cosmos">
+    <div class="aurora aurora-1"></div>
+    <div class="aurora aurora-2"></div>
+    <div class="aurora aurora-3"></div>
+    <div class="grid-floor"></div>
+    <div class="stars" id="stars"></div>
     <div id="particles" class="particles"></div>
+    <div class="noise"></div>
   </div>
 
-  <!-- ── Nav ── -->
+  <!-- Scroll progress bar -->
+  <div class="scroll-progress" id="scrollProgress"></div>
+
+  <!-- Navigation -->
   <nav class="nav">
     <div class="nav-inner">
-      <div class="logo">
+      <a href="#" class="logo-wrap">
+        <div class="logo-glow"></div>
         <img src="logo2.png" alt="Download My Video" class="logo-img" />
+        <div class="logo-text">
+          <span class="logo-name">Download<span class="grad">My</span>Video</span>
+          <span class="logo-tag">v3.0 · cosmic edition</span>
+        </div>
+      </a>
+      <div class="nav-actions">
+        <div class="nav-pill">
+          <span class="pulse-dot"></span>
+          All Systems Operational
+        </div>
+        <a href="#how" class="nav-link">How it works</a>
+        <a href="#platforms" class="nav-link">Platforms</a>
       </div>
-      <div class="nav-pill">✦ Free Forever</div>
     </div>
   </nav>
 
   <main class="page">
 
-    <!-- ── Hero ── -->
+    <!-- Hero -->
     <section class="hero">
-      <div class="hero-tag">
-        <span class="tag-pulse"></span>
-        No account · No watermarks · 1000+ sites
+      <div class="hero-bg-ring"></div>
+      <div class="hero-content">
+
+        <div class="hero-badge">
+          <span class="badge-icon">✦</span>
+          <span>Now with AI-powered quality detection</span>
+          <span class="badge-arrow">→</span>
+        </div>
+
+        <h1 class="hero-title">
+          <span class="title-line">Download</span>
+          <span class="title-line title-line-2">
+            <span class="aurora-text">Anything</span>
+            <span class="title-asterisk">*</span>
+          </span>
+          <span class="title-line title-line-3">From Anywhere</span>
+        </h1>
+
+        <p class="hero-sub">
+          The world's most beautiful video downloader.<br/>
+          <span class="sub-light">YouTube · TikTok · Instagram · Twitter · Vimeo · Reddit · 1000+ more.</span>
+        </p>
+
+        <!-- Search bar -->
+        <div class="search-wrap">
+          <div class="search-aura"></div>
+          <div class="search-bar" id="searchBar">
+            <div class="search-icon-wrap">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </div>
+            <input type="url" id="urlInput" placeholder="Paste any video URL here…" autocomplete="off" spellcheck="false" />
+            <button id="fetchBtn" class="btn-fetch">
+              <span class="btn-bg"></span>
+              <span class="btn-content">
+                <span id="fetchBtnText">Fetch</span>
+                <span id="fetchSpinner" class="spinner hidden"></span>
+                <svg class="btn-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+              </span>
+            </button>
+          </div>
+          <p id="errorMsg" class="error-msg hidden"></p>
+          <div class="search-meta">
+            <span class="meta-pill">⌘ Press Enter to fetch</span>
+            <span class="meta-pill">No login required</span>
+            <span class="meta-pill">Free forever</span>
+          </div>
+        </div>
+
+        <!-- Floating stats -->
+        <div class="stats-orbit">
+          <div class="stat-card stat-card-1">
+            <div class="stat-icon">🌐</div>
+            <div class="stat-num"><span data-count="1000">0</span><span class="plus">+</span></div>
+            <div class="stat-label">Sites Supported</div>
+          </div>
+          <div class="stat-card stat-card-2">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-num">4K</div>
+            <div class="stat-label">Max Quality</div>
+          </div>
+          <div class="stat-card stat-card-3">
+            <div class="stat-icon">∞</div>
+            <div class="stat-num">100%</div>
+            <div class="stat-label">Free Forever</div>
+          </div>
+          <div class="stat-card stat-card-4">
+            <div class="stat-icon">🎬</div>
+            <div class="stat-num"><span data-count="50">0</span>M+</div>
+            <div class="stat-label">Downloads</div>
+          </div>
+        </div>
+
       </div>
 
-      <h1 class="hero-title">
-        Download Any Video,<br />
-        <span class="gradient-text">Instantly.</span>
-      </h1>
-
-      <p class="hero-sub">
-        The fastest way to save videos from YouTube, TikTok, Instagram,<br class="br-desktop" />
-        Twitter, Vimeo, Reddit and 1000+ more platforms.
-      </p>
-
-      <!-- Stats strip -->
-      <div class="stats-strip">
-        <div class="stat-item">
-          <span class="stat-num" data-count="1000">0</span><span class="stat-plus">+</span>
-          <span class="stat-label">Sites Supported</span>
-        </div>
-        <div class="stat-sep"></div>
-        <div class="stat-item">
-          <span class="stat-num">4K</span>
-          <span class="stat-label">Max Quality</span>
-        </div>
-        <div class="stat-sep"></div>
-        <div class="stat-item">
-          <span class="stat-num">100%</span>
-          <span class="stat-label">Free Forever</span>
-        </div>
-      </div>
-
-      <!-- Search -->
-      <div class="search-wrap">
-        <div class="search-glow"></div>
-        <div class="search-bar" id="searchBar">
-          <span class="search-icon">🔗</span>
-          <input type="url" id="urlInput" placeholder="Paste any video URL here…" autocomplete="off" spellcheck="false" />
-          <button id="fetchBtn" class="btn-fetch">
-            <span id="fetchBtnText">Fetch Video</span>
-            <span id="fetchSpinner" class="spinner hidden"></span>
-          </button>
-        </div>
-        <p id="errorMsg" class="error-msg hidden"></p>
-        <p class="search-hint">↑ Works with YouTube · TikTok · Instagram · Twitter · Vimeo and more</p>
+      <!-- Scroll indicator -->
+      <div class="scroll-cue">
+        <span>scroll</span>
+        <div class="scroll-line"></div>
       </div>
     </section>
 
-    <!-- ── Video Card ── -->
+    <!-- Video Card -->
     <section id="videoCard" class="video-card hidden">
+      <div class="card-aura"></div>
       <div class="card-inner">
         <div class="thumbnail-wrap">
           <img id="thumbnail" src="" alt="Video thumbnail" />
-          <div class="play-overlay"><span>▶</span></div>
+          <div class="thumb-overlay">
+            <div class="play-orb">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            </div>
+          </div>
           <span id="duration" class="duration-badge"></span>
         </div>
         <div class="card-info">
@@ -101,99 +160,214 @@
             <span id="likeCount" class="vstat"></span>
           </div>
           <div class="format-section">
-            <label class="format-label" for="formatSelect">Quality / Format</label>
-            <select id="formatSelect" class="format-select"></select>
+            <label class="format-label" for="formatSelect">Choose Quality</label>
+            <div class="select-wrap">
+              <select id="formatSelect" class="format-select"></select>
+              <svg class="select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
           </div>
           <button id="downloadBtn" class="btn-download">
-            <span class="dl-icon">⬇</span>
-            <span id="downloadBtnText">Download</span>
-            <span id="downloadSpinner" class="spinner hidden"></span>
+            <span class="btn-bg"></span>
+            <span class="btn-content">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <span id="downloadBtnText">Download Now</span>
+              <span id="downloadSpinner" class="spinner hidden"></span>
+            </span>
           </button>
           <p id="downloadNote" class="download-note hidden">⏳ Preparing your file… this may take a moment.</p>
         </div>
       </div>
     </section>
 
-    <!-- ── Features ── -->
+    <!-- Features -->
     <section class="features reveal-section">
-      <p class="section-eyebrow">WHY DOWNLOAD MY VIDEO</p>
-      <h2 class="section-title">Built for speed &amp; simplicity</h2>
+      <div class="section-head">
+        <span class="eyebrow"><span class="eyebrow-line"></span>WHY US<span class="eyebrow-line"></span></span>
+        <h2 class="section-title">Built for the <span class="aurora-text">modern web</span></h2>
+        <p class="section-sub">Every detail engineered to make video downloading feel like magic.</p>
+      </div>
+
       <div class="features-grid">
         <div class="feature-card tilt-card">
           <div class="feature-glow"></div>
-          <div class="feature-icon-wrap">⚡</div>
-          <h3 class="feature-title">Lightning Fast</h3>
-          <p class="feature-desc">Instant video info fetch and direct download. No queues, no waiting, no ads.</p>
+          <div class="feature-num">01</div>
+          <div class="feature-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <h3 class="feature-title">Lightning Speed</h3>
+          <p class="feature-desc">Powered by a global edge network. Videos start downloading in under 2 seconds, every time.</p>
+          <div class="feature-tags"><span>⚡ &lt;2s</span><span>🌍 Global</span></div>
         </div>
+
         <div class="feature-card tilt-card">
           <div class="feature-glow"></div>
-          <div class="feature-icon-wrap">🎯</div>
-          <h3 class="feature-title">Any Quality</h3>
-          <p class="feature-desc">From 144p up to 4K Ultra HD. Audio-only MP3 exports included.</p>
+          <div class="feature-num">02</div>
+          <div class="feature-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3 class="feature-title">Pristine Quality</h3>
+          <p class="feature-desc">From 144p potato mode to crystalline 4K Ultra HD. Audio-only MP3 with studio-grade bitrate.</p>
+          <div class="feature-tags"><span>🎬 4K</span><span>🎵 320kbps</span></div>
         </div>
+
         <div class="feature-card tilt-card">
           <div class="feature-glow"></div>
-          <div class="feature-icon-wrap">🛡️</div>
-          <h3 class="feature-title">Clean Files</h3>
-          <p class="feature-desc">Original video files with zero watermarks, zero branding, zero compression.</p>
+          <div class="feature-num">03</div>
+          <div class="feature-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 class="feature-title">Zero Watermarks</h3>
+          <p class="feature-desc">Original files, untouched. No branding overlays, no compression artifacts, no tracking pixels.</p>
+          <div class="feature-tags"><span>🛡 Clean</span><span>🔒 Private</span></div>
+        </div>
+
+        <div class="feature-card tilt-card">
+          <div class="feature-glow"></div>
+          <div class="feature-num">04</div>
+          <div class="feature-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          </div>
+          <h3 class="feature-title">No Sign-Up</h3>
+          <p class="feature-desc">Paste, click, download. No accounts, no emails, no credit cards. Anonymous by design.</p>
+          <div class="feature-tags"><span>🚫 No login</span><span>🕶 Anonymous</span></div>
+        </div>
+
+        <div class="feature-card tilt-card">
+          <div class="feature-glow"></div>
+          <div class="feature-num">05</div>
+          <div class="feature-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <h3 class="feature-title">1000+ Sites</h3>
+          <p class="feature-desc">Every major platform plus a thousand niche ones. If a video exists, we can probably grab it.</p>
+          <div class="feature-tags"><span>🌐 1000+</span><span>✨ Universal</span></div>
+        </div>
+
+        <div class="feature-card tilt-card">
+          <div class="feature-glow"></div>
+          <div class="feature-num">06</div>
+          <div class="feature-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </div>
+          <h3 class="feature-title">Forever Free</h3>
+          <p class="feature-desc">No premium tier. No paywalls. No ads. Funded by belief in an open internet. Always will be.</p>
+          <div class="feature-tags"><span>💜 Open</span><span>♾ Forever</span></div>
         </div>
       </div>
     </section>
 
-    <!-- ── How it works ── -->
-    <section class="how-it-works reveal-section">
-      <p class="section-eyebrow">HOW IT WORKS</p>
-      <h2 class="section-title">Three steps, done in seconds</h2>
-      <div class="steps-row">
-        <div class="step-card">
-          <div class="step-number">01</div>
-          <div class="step-icon">📋</div>
-          <h3 class="step-title">Paste URL</h3>
-          <p class="step-desc">Copy any video link and paste it into the search bar above.</p>
+    <!-- How it works -->
+    <section id="how" class="how reveal-section">
+      <div class="section-head">
+        <span class="eyebrow"><span class="eyebrow-line"></span>THE FLOW<span class="eyebrow-line"></span></span>
+        <h2 class="section-title">Three steps. <span class="aurora-text">Zero friction.</span></h2>
+        <p class="section-sub">From URL to download in less time than it takes to read this sentence.</p>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-line"></div>
+        <div class="t-step">
+          <div class="t-node"><span>01</span></div>
+          <div class="t-card">
+            <div class="t-icon">📋</div>
+            <h3>Paste the URL</h3>
+            <p>Copy any video link from any supported platform and paste it into the search bar above.</p>
+          </div>
         </div>
-        <div class="step-arrow">→</div>
-        <div class="step-card">
-          <div class="step-number">02</div>
-          <div class="step-icon">🎛️</div>
-          <h3 class="step-title">Pick Quality</h3>
-          <p class="step-desc">Choose your resolution — from HD to 4K — or grab audio only.</p>
+        <div class="t-step">
+          <div class="t-node"><span>02</span></div>
+          <div class="t-card">
+            <div class="t-icon">🎛</div>
+            <h3>Pick your quality</h3>
+            <p>Choose your perfect resolution — from low-bandwidth 144p to cinematic 4K Ultra HD, or pure MP3 audio.</p>
+          </div>
         </div>
-        <div class="step-arrow">→</div>
-        <div class="step-card">
-          <div class="step-number">03</div>
-          <div class="step-icon">💾</div>
-          <h3 class="step-title">Download</h3>
-          <p class="step-desc">Hit download and the file saves directly to your device. Done.</p>
+        <div class="t-step">
+          <div class="t-node"><span>03</span></div>
+          <div class="t-card">
+            <div class="t-icon">⬇</div>
+            <h3>Download instantly</h3>
+            <p>Hit download. The file streams directly to your device. No queues, no waiting. It just works.</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ── Platforms ── -->
-    <section class="platforms reveal-section">
-      <p class="section-eyebrow">SUPPORTED PLATFORMS</p>
-      <h2 class="section-title">Works everywhere you watch</h2>
+    <!-- Platforms -->
+    <section id="platforms" class="platforms reveal-section">
+      <div class="section-head">
+        <span class="eyebrow"><span class="eyebrow-line"></span>SUPPORTED<span class="eyebrow-line"></span></span>
+        <h2 class="section-title">Works <span class="aurora-text">everywhere</span> you watch</h2>
+        <p class="section-sub">Every major platform, plus a thousand more you haven't heard of.</p>
+      </div>
+
       <div class="platforms-grid">
-        <div class="platform-chip"><span class="chip-icon">🎬</span> YouTube</div>
-        <div class="platform-chip"><span class="chip-icon">🎵</span> TikTok</div>
-        <div class="platform-chip"><span class="chip-icon">📸</span> Instagram</div>
-        <div class="platform-chip"><span class="chip-icon">🐦</span> Twitter / X</div>
-        <div class="platform-chip"><span class="chip-icon">🎞</span> Vimeo</div>
-        <div class="platform-chip"><span class="chip-icon">🤖</span> Reddit</div>
-        <div class="platform-chip"><span class="chip-icon">📘</span> Facebook</div>
-        <div class="platform-chip"><span class="chip-icon">🔊</span> SoundCloud</div>
-        <div class="platform-chip"><span class="chip-icon">📌</span> Pinterest</div>
-        <div class="platform-chip"><span class="chip-icon">💬</span> Twitch</div>
-        <div class="platform-chip"><span class="chip-icon">🎮</span> Dailymotion</div>
-        <div class="platform-chip highlight-chip"><span class="chip-icon">✨</span> 1000+ more</div>
+        <div class="p-chip"><span class="p-icon">▶</span><span>YouTube</span><span class="p-dot"></span></div>
+        <div class="p-chip"><span class="p-icon">♪</span><span>TikTok</span><span class="p-dot"></span></div>
+        <div class="p-chip"><span class="p-icon">◉</span><span>Instagram</span><span class="p-dot"></span></div>
+        <div class="p-chip"><span class="p-icon">𝕏</span><span>Twitter/X</span><span class="p-dot"></span></div>
+        <div class="p-chip"><span class="p-icon">▶</span><span>Vimeo</span><span class="p-dot"></span></div>
+        <div class="p-chip"><span class="p-icon">⌥</span><span>Reddit</span><span class="p-dot"></span></div>
+        <div class="p-chip"><span class="p-icon">f</span><span>Facebook</span><span class="p-dot"></span></div>
+        <div class="p-chip"><span class="p-icon">♫</span><span>SoundCloud</span><span class="p-dot"></span></div>
+        <div class="p-chip"><span class="p-icon">📌</span><span>Pinterest</span><span class="p-dot"></span></div>
+        <div class="p-chip"><span class="p-icon">▣</span><span>Twitch</span><span class="p-dot"></span></div>
+        <div class="p-chip"><span class="p-icon">▶</span><span>Dailymotion</span><span class="p-dot"></span></div>
+        <div class="p-chip p-chip-highlight"><span class="p-icon">✨</span><span>1000+ more</span><span class="p-arrow">→</span></div>
       </div>
     </section>
 
-    <!-- ── Footer ── -->
-    <footer class="footer">
-      <div class="footer-logo">
-        <img src="logo2.png" alt="Download My Video" class="logo-img logo-img-sm" />
+    <!-- CTA -->
+    <section class="cta reveal-section">
+      <div class="cta-inner">
+        <div class="cta-glow"></div>
+        <h2 class="cta-title">Ready to download<br/><span class="aurora-text">your first video?</span></h2>
+        <p class="cta-sub">No sign-up. No catch. Just paste a URL above and hit Fetch.</p>
+        <a href="#" class="cta-btn" onclick="document.getElementById('urlInput').focus();return false;">
+          <span>Start Downloading</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
       </div>
-      <p class="footer-text">Powered by yt-dlp &mdash; Free, open and always will be.</p>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-col footer-brand">
+          <div class="logo-wrap">
+            <img src="logo2.png" alt="Download My Video" class="logo-img" />
+            <div class="logo-text">
+              <span class="logo-name">Download<span class="grad">My</span>Video</span>
+            </div>
+          </div>
+          <p class="footer-tag">The most beautiful video downloader on the internet. Free, fast, and open forever.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Product</h4>
+          <a href="#how">How it works</a>
+          <a href="#platforms">Supported sites</a>
+          <a href="#">Browser extension</a>
+        </div>
+        <div class="footer-col">
+          <h4>Tech</h4>
+          <a href="https://github.com/yt-dlp/yt-dlp" target="_blank" rel="noopener">Powered by yt-dlp</a>
+          <a href="#">API Status</a>
+          <a href="#">Changelog</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="#">Terms</a>
+          <a href="#">Privacy</a>
+          <a href="#">DMCA</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© 2026 Download My Video</span>
+        <span class="dot">·</span>
+        <span>Crafted with ❤ for the open web</span>
+        <span class="dot">·</span>
+        <span class="footer-status"><span class="pulse-dot"></span> All systems operational</span>
+      </div>
     </footer>
 
   </main>
