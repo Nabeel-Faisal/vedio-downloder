@@ -1,12 +1,10 @@
 /* ═════════════════════════════════════════════════════════════════════════
-   DOWNLOAD MY VIDEO — Cosmic Edition (app.js)
+   Download My Video — app.js (minimal edition)
    ═════════════════════════════════════════════════════════════════════════ */
 
-/* ── State ───────────────────────────────────────────────────────────────── */
 const API = '';
 let currentFormats = [];
 
-/* ── DOM ─────────────────────────────────────────────────────────────────── */
 const urlInput        = document.getElementById('urlInput');
 const fetchBtn        = document.getElementById('fetchBtn');
 const fetchBtnText    = document.getElementById('fetchBtnText');
@@ -92,8 +90,8 @@ async function fetchInfo() {
         platform.textContent = data.platform || 'Video';
         videoTitle.textContent = data.title || 'Untitled';
         uploader.textContent = data.uploader ? `by ${data.uploader}` : '';
-        viewCount.textContent = data.viewCount ? `👁 ${formatCount(data.viewCount)} views` : '';
-        likeCount.textContent = data.likeCount ? `👍 ${formatCount(data.likeCount)} likes` : '';
+        viewCount.textContent = data.viewCount ? `${formatCount(data.viewCount)} views` : '';
+        likeCount.textContent = data.likeCount ? `${formatCount(data.likeCount)} likes` : '';
 
         currentFormats = data.formats || [];
         formatSelect.innerHTML = '';
@@ -109,10 +107,10 @@ async function fetchInfo() {
         videoCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     } catch (err) {
-        showError(`❌ ${err.message}`);
+        showError(`${err.message}`);
     } finally {
         fetchBtn.disabled = false;
-        fetchBtnText.textContent = 'Fetch';
+        fetchBtnText.textContent = 'Download';
         fetchSpinner.classList.add('hidden');
     }
 }
@@ -163,10 +161,10 @@ async function startDownload() {
         URL.revokeObjectURL(blobUrl);
 
     } catch (err) {
-        showError(`❌ ${err.message}`);
+        showError(`${err.message}`);
     } finally {
         downloadBtn.disabled = false;
-        downloadBtnText.textContent = 'Download Now';
+        downloadBtnText.textContent = 'Download';
         downloadSpinner.classList.add('hidden');
         downloadNote.classList.add('hidden');
     }
@@ -183,108 +181,21 @@ urlInput.addEventListener('paste', () => {
     }, 50);
 });
 
-/* ── Custom cursor ───────────────────────────────────────────────────────── */
-(function initCursor() {
-    if (window.matchMedia('(max-width: 900px)').matches) return;
-    const dot = document.getElementById('cursorDot');
-    const ring = document.getElementById('cursorRing');
-    if (!dot || !ring) return;
-
-    let mx = window.innerWidth / 2, my = window.innerHeight / 2;
-    let rx = mx, ry = my;
-
-    window.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
-    window.addEventListener('mouseleave', () => {
-        dot.style.opacity = '0'; ring.style.opacity = '0';
-    });
-    window.addEventListener('mouseenter', () => {
-        dot.style.opacity = '1'; ring.style.opacity = '1';
-    });
-
-    function animate() {
-        rx += (mx - rx) * 0.18;
-        ry += (my - ry) * 0.18;
-        dot.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
-        ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`;
-        requestAnimationFrame(animate);
-    }
-    animate();
-
-    const hoverSelector = 'a, button, input, select, .tilt-card, .p-chip, .stat-card, .t-card, .meta-pill, .nav-pill, .hero-badge';
-    document.querySelectorAll(hoverSelector).forEach(el => {
-        el.addEventListener('mouseenter', () => { ring.classList.add('hover'); dot.classList.add('hover'); });
-        el.addEventListener('mouseleave', () => { ring.classList.remove('hover'); dot.classList.remove('hover'); });
-    });
-})();
-
-/* ── Stars ───────────────────────────────────────────────────────────────── */
-(function spawnStars() {
-    const stars = document.getElementById('stars');
-    if (!stars) return;
-    for (let i = 0; i < 80; i++) {
-        const s = document.createElement('div');
-        s.className = 'star';
-        const size = Math.random() * 2 + 0.5;
-        s.style.cssText = `
-            left: ${Math.random() * 100}%;
-            top:  ${Math.random() * 100}%;
-            width: ${size}px; height: ${size}px;
-            animation-delay: ${Math.random() * 3}s;
-            animation-duration: ${2 + Math.random() * 3}s;
-        `;
-        stars.appendChild(s);
-    }
-})();
-
-/* ── Particles ───────────────────────────────────────────────────────────── */
-(function spawnParticles() {
-    const container = document.getElementById('particles');
-    if (!container) return;
-    const colors = ['#ff006e', '#3a86ff', '#00f5d4', '#ffbe0b', '#b5179e'];
-    for (let i = 0; i < 40; i++) {
-        const p = document.createElement('div');
-        p.className = 'particle';
-        const size = 2 + Math.random() * 3;
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        p.style.cssText = `
-            left: ${Math.random() * 100}%;
-            top: ${80 + Math.random() * 30}%;
-            width: ${size}px; height: ${size}px;
-            background: ${color};
-            color: ${color};
-            animation-delay: ${Math.random() * 15}s;
-            animation-duration: ${12 + Math.random() * 8}s;
-            opacity: ${0.2 + Math.random() * 0.4};
-        `;
-        container.appendChild(p);
-    }
-})();
-
-/* ── 3D tilt + glow follow on feature cards ──────────────────────────────── */
-document.querySelectorAll('.tilt-card').forEach(card => {
-    card.addEventListener('mousemove', e => {
-        const r = card.getBoundingClientRect();
-        const x = (e.clientX - r.left) / r.width;
-        const y = (e.clientY - r.top) / r.height;
-        const tiltX = (y - 0.5) * -12;
-        const tiltY = (x - 0.5) * 12;
-        card.style.transform = `perspective(900px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateZ(12px) scale(1.02)`;
-        card.style.setProperty('--mx', `${x * 100}%`);
-        card.style.setProperty('--my', `${y * 100}%`);
-    });
-    card.addEventListener('mouseleave', () => {
-        card.style.transform = '';
-    });
-});
-
-/* ── Scroll progress bar ─────────────────────────────────────────────────── */
+/* ── Scroll progress ─────────────────────────────────────────────────────── */
 const scrollProgress = document.getElementById('scrollProgress');
 if (scrollProgress) {
+    let ticking = false;
     window.addEventListener('scroll', () => {
-        const scrolled = window.scrollY;
-        const max = document.documentElement.scrollHeight - window.innerHeight;
-        const pct = max > 0 ? (scrolled / max) * 100 : 0;
-        scrollProgress.style.width = pct + '%';
+        if (!ticking) {
+            requestAnimationFrame(() => {
+                const scrolled = window.scrollY;
+                const max = document.documentElement.scrollHeight - window.innerHeight;
+                const pct = max > 0 ? (scrolled / max) * 100 : 0;
+                scrollProgress.style.width = pct + '%';
+                ticking = false;
+            });
+            ticking = true;
+        }
     }, { passive: true });
 }
 
@@ -296,8 +207,8 @@ const revealObs = new IntersectionObserver(entries => {
             revealObs.unobserve(e.target);
         }
     });
-}, { threshold: 0.1 });
-document.querySelectorAll('.reveal-section').forEach(el => revealObs.observe(el));
+}, { threshold: 0.08, rootMargin: '0px 0px -50px 0px' });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
 /* ── Animated counters ───────────────────────────────────────────────────── */
 const counterObs = new IntersectionObserver(entries => {
@@ -305,12 +216,14 @@ const counterObs = new IntersectionObserver(entries => {
         if (!e.isIntersecting) return;
         const el = e.target;
         const target = +el.dataset.count;
-        let start = 0;
-        const step = () => {
-            start += Math.ceil(target / 50);
-            if (start >= target) { el.textContent = target; return; }
-            el.textContent = start;
-            requestAnimationFrame(step);
+        const duration = 1200;
+        const start = performance.now();
+        const step = (now) => {
+            const t = Math.min(1, (now - start) / duration);
+            const eased = 1 - Math.pow(1 - t, 3);
+            el.textContent = Math.floor(target * eased);
+            if (t < 1) requestAnimationFrame(step);
+            else el.textContent = target;
         };
         requestAnimationFrame(step);
         counterObs.unobserve(el);
@@ -326,7 +239,9 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
             const target = document.querySelector(id);
             if (target) {
                 e.preventDefault();
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const headerOffset = 80;
+                const top = target.getBoundingClientRect().top + window.scrollY - headerOffset;
+                window.scrollTo({ top, behavior: 'smooth' });
             }
         }
     });
