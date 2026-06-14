@@ -6,8 +6,12 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const { spawn, execSync } = require('child_process');
+const { Readable } = require('stream');
 const zlib = require('zlib');
 const youtubedl = require('youtube-dl-exec');
+
+const RAPIDAPI_HOST = 'youtube-media-downloader.p.rapidapi.com';
+const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -72,6 +76,7 @@ app.get('/api/diag', async (req, res) => {
         cwd: process.cwd(),
         systemYtDlp,
         proxyConfigured: Boolean(process.env.PROXY_URL),
+        rapidApiConfigured: Boolean(RAPIDAPI_KEY),
         potProvider: 'unreachable',
         bins: {}
     };
@@ -149,6 +154,113 @@ function getYtDlpOptions(url, extra = {}) {
     return options;
 }
 
+// ── RapidAPI (YouTube) ───────────────────────────────────────────────────────
+
+function isYoutubeUrl(url) {
+    return /youtube\.com|youtu\.be/i.test(url);
+}
+
+function extractYoutubeId(url) {
+    const m =
+        url.match(/youtu\.be\/([\w-]{6,})/) ||
+        url.match(/[?&]v=([\w-]{6,})/) ||
+        url.match(/\/shorts\/([\w-]{6,})/) ||
+        url.match(/\/embed\/([\w-]{6,})/);
+    return m ? m[1] : null;
+}
+
+async function fetchYoutubeMeta(videoId) {
+    if (!RAPIDAPI_KEY) throw new Error('RAPIDAPI_KEY not set');
+    const url = `https://${RAPIDAPI_HOST}/v2/video/details?videoId=${encodeURIComponent(videoId)}&urlAccess=normal&videos=auto&audios=auto`;
+    const resp = await fetch(url, {
+        headers: {
+            'x-rapidapi-host': RAPIDAPI_HOST,
+            'x-rapidapi-key': RAPIDAPI_KEY,
+        },
+    });
+    if (!resp.ok) throw new Error(`RapidAPI HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (data.errorId && data.errorId !== 'Success') throw new Error(`RapidAPI: ${data.errorId}`);
+    return data;
+}
+
+function pickOriginalAudio(items) {
+    if (!items || !items.length) return null;
+    const original = items.find(a => !/dubbed-auto/.test(a.url));
+    return original || items[0];
+}
+
+function pickVideoStream(items, formatId) {
+    const mp4s = items.filter(v => v.extension === 'mp4');
+    if (formatId === 'rapid:best') {
+        const qOrder = ['1080p', '720p', '480p', '360p', '240p', '144p'];
+        for (const q of qOrder) {
+            const m = mp4s.find(v => v.quality === q);
+            if (m) return m;
+        }
+        return mp4s[0];
+    }
+    const q = formatId.replace('rapid:', '');
+    return mp4s.find(v => v.quality === q) || null;
+}
+
+function buildYoutubeFormats(data) {
+    const formats = [{ id: 'rapid:best', label: '🏆 Best Quality (auto)', ext: 'mp4' }];
+    const videos = (data.videos && data.videos.items) || [];
+    const seen = new Set();
+    for (const q of ['1080p', '720p', '480p', '360p', '240p', '144p']) {
+        const m = videos.find(v => v.quality === q && v.extension === 'mp4');
+        if (m && !seen.has(q)) {
+            seen.add(q);
+            formats.push({ id: `rapid:${q}`, label: q, ext: 'mp4', filesize: m.size });
+        }
+    }
+    const audio = pickOriginalAudio((data.audios && data.audios.items) || []);
+    formats.push({ id: 'rapid:audio', label: '🎵 Audio only (MP3)', ext: 'mp3', filesize: audio ? audio.size : undefined });
+    return formats;
+}
+
+async function pipeUpstreamToResponse(url, res) {
+    const upstream = await fetch(url);
+    if (!upstream.ok || !upstream.body) throw new Error(`Upstream ${upstream.status}`);
+    const len = upstream.headers.get('content-length');
+    if (len) res.setHeader('Content-Length', len);
+    Readable.fromWeb(upstream.body).pipe(res);
+}
+
+function spawnFfmpegMerge(videoUrl, audioUrl) {
+    return spawn('ffmpeg', [
+        '-hide_banner', '-loglevel', 'error',
+        '-i', videoUrl,
+        '-i', audioUrl,
+        '-map', '0:v:0', '-map', '1:a:0',
+        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+        '-f', 'mp4',
+        '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+        'pipe:1',
+    ]);
+}
+
+function spawnFfmpegMp3(audioUrl) {
+    return spawn('ffmpeg', [
+        '-hide_banner', '-loglevel', 'error',
+        '-i', audioUrl,
+        '-vn', '-c:a', 'libmp3lame', '-q:a', '2',
+        '-f', 'mp3',
+        'pipe:1',
+    ]);
+}
+
+function attachFfmpegToResponse(ff, res) {
+    ff.stdout.pipe(res);
+    ff.stderr.on('data', d => console.error('[ffmpeg]', d.toString().trim()));
+    res.on('close', () => { try { ff.kill('SIGKILL'); } catch {} });
+    ff.on('error', err => {
+        console.error('[ffmpeg] spawn error:', err.message);
+        if (!res.headersSent) res.status(500).end();
+    });
+}
+
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 // Stale/rotated cookies don't just fail — they actively trigger YouTube's
@@ -171,6 +283,33 @@ async function runInfo(url, useCookies = true) {
 app.post('/api/info', async (req, res) => {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
+
+    if (isYoutubeUrl(url) && RAPIDAPI_KEY) {
+        const videoId = extractYoutubeId(url);
+        if (!videoId) return res.status(400).json({ error: 'Could not extract YouTube video ID' });
+        try {
+            console.log(`[info] YouTube via RapidAPI: ${videoId}`);
+            const data = await fetchYoutubeMeta(videoId);
+            const thumbs = data.thumbnails || [];
+            const bestThumb = thumbs[thumbs.length - 1] || thumbs[0] || {};
+            return res.json({
+                title: data.title,
+                thumbnail: bestThumb.url || '',
+                duration: data.lengthSeconds || 0,
+                uploader: (data.channel && data.channel.name) || '',
+                platform: 'YouTube',
+                viewCount: data.viewCount || 0,
+                likeCount: data.likeCount || 0,
+                formats: buildYoutubeFormats(data),
+            });
+        } catch (err) {
+            console.error('[info] RapidAPI failed:', err.message);
+            return res.status(500).json({
+                error: 'Failed to fetch video info from RapidAPI.',
+                details: err.message,
+            });
+        }
+    }
 
     try {
         console.log(`[info] Fetching: ${url}`);
@@ -255,6 +394,48 @@ app.post('/api/download', async (req, res) => {
 
     const safeTitle = (title || 'video').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') || 'video';
     const filename = `${safeTitle}.${ext === 'mp3' ? 'mp3' : 'mp4'}`;
+
+    if (isYoutubeUrl(url) && RAPIDAPI_KEY && typeof formatId === 'string' && formatId.startsWith('rapid:')) {
+        const videoId = extractYoutubeId(url);
+        if (!videoId) return res.status(400).json({ error: 'Could not extract YouTube video ID' });
+        try {
+            console.log(`[download] YouTube via RapidAPI: ${videoId} (${formatId})`);
+            const data = await fetchYoutubeMeta(videoId);
+            const audios = (data.audios && data.audios.items) || [];
+            const videos = (data.videos && data.videos.items) || [];
+            const audio = pickOriginalAudio(audios);
+
+            if (formatId === 'rapid:audio') {
+                if (!audio) return res.status(500).json({ error: 'No audio stream available' });
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                res.setHeader('Content-Type', 'audio/mpeg');
+                const ff = spawnFfmpegMp3(audio.url);
+                attachFfmpegToResponse(ff, res);
+                return;
+            }
+
+            const video = pickVideoStream(videos, formatId);
+            if (!video) return res.status(500).json({ error: 'Requested quality not available' });
+
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Type', 'video/mp4');
+
+            if (video.hasAudio) {
+                await pipeUpstreamToResponse(video.url, res);
+                return;
+            }
+
+            if (!audio) return res.status(500).json({ error: 'No audio stream available for merge' });
+            const ff = spawnFfmpegMerge(video.url, audio.url);
+            attachFfmpegToResponse(ff, res);
+            return;
+        } catch (err) {
+            console.error('[download] RapidAPI failed:', err.message);
+            if (!res.headersSent) res.status(500).json({ error: 'Download failed.', details: err.message });
+            return;
+        }
+    }
+
     const tmpDir = os.tmpdir();
     const tmpBase = path.join(tmpDir, `vg_${Date.now()}_${Math.random().toString(36).slice(2)}`);
     const tmpOut = `${tmpBase}.%(ext)s`;
