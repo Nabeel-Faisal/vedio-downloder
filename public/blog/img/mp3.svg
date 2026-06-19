@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="mp3-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="50%" stop-color="#312e81"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="mp3-bar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#mp3-bg)"/>
+
+  <!-- Audio waveform bars -->
+  <g transform="translate(380 200)">
+    <rect x="0" y="90" width="22" height="50" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="35" y="60" width="22" height="110" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="70" y="30" width="22" height="170" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="105" y="0" width="22" height="230" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="140" y="20" width="22" height="190" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="175" y="50" width="22" height="130" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="210" y="10" width="22" height="210" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="245" y="40" width="22" height="150" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="280" y="70" width="22" height="90" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="315" y="30" width="22" height="170" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="350" y="80" width="22" height="70" rx="11" fill="url(#mp3-bar)"/>
+    <rect x="385" y="50" width="22" height="130" rx="11" fill="url(#mp3-bar)"/>
+  </g>
+
+  <!-- MP3 badge -->
+  <g transform="translate(540 470)">
+    <rect width="120" height="46" rx="23" fill="#a78bfa"/>
+    <text x="60" y="31" font-family="Inter Tight, Inter, system-ui, sans-serif" font-size="22" font-weight="800" fill="#1e1b4b" text-anchor="middle" letter-spacing="2">MP3</text>
+  </g>
+
+  <!-- Label -->
+  <text x="600" y="570" font-family="Inter Tight, Inter, system-ui, sans-serif" font-size="38" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="-1.2">YouTube to MP3 Converter</text>
+  <text x="600" y="608" font-family="Inter, system-ui, sans-serif" font-size="18" font-weight="500" fill="rgba(255,255,255,0.7)" text-anchor="middle">High bitrate · Free · Any video</text>
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="ig-bg" cx="30%" cy="100%" r="120%">
+      <stop offset="0%" stop-color="#FFDC80"/>
+      <stop offset="20%" stop-color="#FCAF45"/>
+      <stop offset="40%" stop-color="#F77737"/>
+      <stop offset="60%" stop-color="#F56040"/>
+      <stop offset="75%" stop-color="#E1306C"/>
+      <stop offset="85%" stop-color="#C13584"/>
+      <stop offset="95%" stop-color="#833AB4"/>
+      <stop offset="100%" stop-color="#5851DB"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#ig-bg)"/>
+
+  <!-- Instagram-style camera icon -->
+  <g transform="translate(490 130)">
+    <!-- Outer rounded square -->
+    <rect width="220" height="220" rx="55" fill="none" stroke="#ffffff" stroke-width="14"/>
+    <!-- Camera lens -->
+    <circle cx="110" cy="110" r="55" fill="none" stroke="#ffffff" stroke-width="14"/>
+    <!-- Dot in corner -->
+    <circle cx="170" cy="48" r="10" fill="#ffffff"/>
+  </g>
+
+  <!-- Label -->
+  <text x="600" y="450" font-family="Inter Tight, Inter, system-ui, sans-serif" font-size="42" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="-1.5">Instagram Reels Downloader</text>
+  <text x="600" y="495" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="500" fill="rgba(255,255,255,0.85)" text-anchor="middle">Reels · Stories · Posts · No watermark</text>
+</svg>

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="tk-bg" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <filter id="tk-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="630" fill="url(#tk-bg)"/>
+
+  <!-- Cyan glow (offset left) -->
+  <g transform="translate(540 200)" opacity="0.85">
+    <path d="M120 0 C140 0 155 5 168 18 C180 30 188 48 188 70 L188 175 C188 215 158 245 118 245 C78 245 48 215 48 175 C48 154 65 137 86 137 C95 137 103 140 110 145 L110 90 C97 91 86 96 78 105 C68 117 62 132 62 150 L62 0 Z" fill="#25F4EE" filter="url(#tk-glow)"/>
+  </g>
+
+  <!-- Pink/red glow (offset right) -->
+  <g transform="translate(560 200)" opacity="0.85">
+    <path d="M120 0 C140 0 155 5 168 18 C180 30 188 48 188 70 L188 175 C188 215 158 245 118 245 C78 245 48 215 48 175 C48 154 65 137 86 137 C95 137 103 140 110 145 L110 90 C97 91 86 96 78 105 C68 117 62 132 62 150 L62 0 Z" fill="#FE2C55" filter="url(#tk-glow)"/>
+  </g>
+
+  <!-- White TikTok-style note (centered) -->
+  <g transform="translate(550 200)">
+    <path d="M120 0 C140 0 155 5 168 18 C180 30 188 48 188 70 L188 175 C188 215 158 245 118 245 C78 245 48 215 48 175 C48 154 65 137 86 137 C95 137 103 140 110 145 L110 90 C97 91 86 96 78 105 C68 117 62 132 62 150 L62 0 Z" fill="#ffffff"/>
+  </g>
+
+  <!-- Label -->
+  <text x="600" y="540" font-family="Inter Tight, Inter, system-ui, sans-serif" font-size="36" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="-1">TikTok Downloader</text>
+  <text x="600" y="580" font-family="Inter, system-ui, sans-serif" font-size="20" font-weight="500" fill="#a3a3a3" text-anchor="middle">No watermark · Free · Fast</text>
+</svg>

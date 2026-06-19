@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="yt-bg" cx="50%" cy="50%" r="80%">
+      <stop offset="0%" stop-color="#1a1a1a"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#yt-bg)"/>
+
+  <!-- YouTube rounded rectangle play button -->
+  <g transform="translate(450 175)">
+    <rect width="300" height="210" rx="55" fill="#FF0000"/>
+    <path d="M125 60 L125 150 L210 105 Z" fill="#ffffff"/>
+  </g>
+
+  <!-- Label -->
+  <text x="600" y="470" font-family="Inter Tight, Inter, system-ui, sans-serif" font-size="44" font-weight="700" fill="#ffffff" text-anchor="middle" letter-spacing="-1.5">YouTube Video Downloader</text>
+  <text x="600" y="515" font-family="Inter, system-ui, sans-serif" font-size="22" font-weight="500" fill="#a3a3a3" text-anchor="middle">HD · 4K · MP3 · Free, no signup</text>
+
+  <!-- Decorative dots -->
+  <circle cx="200" cy="100" r="3" fill="#ffffff" opacity="0.15"/>
+  <circle cx="1000" cy="80" r="3" fill="#ffffff" opacity="0.15"/>
+  <circle cx="150" cy="500" r="3" fill="#ffffff" opacity="0.15"/>
+  <circle cx="1050" cy="540" r="3" fill="#ffffff" opacity="0.15"/>
+</svg>
