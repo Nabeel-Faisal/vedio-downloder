@@ -839,6 +839,255 @@ img { display: block; max-width: 100%; }
   .video-card { padding: 14px; }
 }
 
+/* ── Blog ─────────────────────────────────────────────────────────────────── */
+.blog-hero {
+  padding: 80px 0 40px;
+  text-align: center;
+}
+.blog-hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  margin-bottom: 16px;
+}
+.blog-hero p {
+  font-size: 17px;
+  color: var(--text-sec);
+  max-width: 600px;
+  margin: 0 auto;
+}
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 28px;
+  padding-bottom: 100px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.blog-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.2s var(--ease), transform 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+}
+.blog-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+.blog-card-img {
+  aspect-ratio: 16/9;
+  background: var(--bg-soft);
+  overflow: hidden;
+}
+.blog-card-img img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s var(--ease-out);
+}
+.blog-card:hover .blog-card-img img { transform: scale(1.04); }
+.blog-card-body { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+.blog-card-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+}
+.blog-card-body h2 {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+.blog-card-body p {
+  font-size: 14.5px;
+  color: var(--text-sec);
+  line-height: 1.6;
+  margin-bottom: 16px;
+  flex: 1;
+}
+.blog-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-mute);
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.blog-card-meta-dot { width: 3px; height: 3px; background: var(--text-dim); border-radius: 50%; }
+
+/* ── Blog post ───────────────────────────────────────────────────────────── */
+.post-hero { padding: 60px 0 30px; }
+.post-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-mute);
+  margin-bottom: 30px;
+  transition: color 0.15s;
+}
+.post-back:hover { color: var(--text); }
+.post-tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-mute);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 18px;
+}
+.post-title {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 4.5vw, 48px);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+.post-lead {
+  font-size: 18px;
+  color: var(--text-sec);
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-mute);
+  padding-bottom: 36px;
+  border-bottom: 1px solid var(--border);
+}
+.post-meta-dot { width: 3px; height: 3px; background: var(--text-dim); border-radius: 50%; }
+
+.post-cover {
+  margin: 40px 0;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  aspect-ratio: 16/9;
+  background: var(--bg-soft);
+}
+.post-cover img { width: 100%; height: 100%; object-fit: cover; }
+
+.post-content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding-bottom: 80px;
+}
+.post-content h2 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 50px 0 16px;
+  color: var(--text);
+}
+.post-content h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin: 32px 0 12px;
+  color: var(--text);
+}
+.post-content p {
+  font-size: 16.5px;
+  line-height: 1.75;
+  color: var(--text-sec);
+  margin-bottom: 18px;
+}
+.post-content a {
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.post-content a:hover { color: var(--text); }
+.post-content ul, .post-content ol {
+  padding-left: 22px;
+  margin-bottom: 18px;
+  color: var(--text-sec);
+  font-size: 16.5px;
+  line-height: 1.75;
+}
+.post-content li { margin-bottom: 8px; }
+.post-content li::marker { color: var(--text-mute); }
+.post-content strong { color: var(--text); font-weight: 600; }
+.post-content blockquote {
+  margin: 24px 0;
+  padding: 18px 22px;
+  background: var(--bg-alt);
+  border-left: 3px solid var(--text);
+  border-radius: var(--radius-sm);
+  font-style: italic;
+  color: var(--text-sec);
+}
+.post-content code {
+  background: var(--bg-soft);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.post-cta {
+  margin: 40px 0;
+  padding: 30px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+.post-cta h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+.post-cta p {
+  font-size: 15px;
+  color: var(--text-sec);
+  margin-bottom: 18px;
+}
+
+.post-related {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 60px 0 80px;
+  border-top: 1px solid var(--border);
+}
+.post-related h2 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 28px;
+  color: var(--text);
+}
+
+@media (max-width: 720px) {
+  .post-content h2 { font-size: 22px; margin: 36px 0 12px; }
+  .post-content p, .post-content ul, .post-content ol { font-size: 15.5px; }
+}
+
 /* ── Reduced motion ──────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
