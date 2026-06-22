@@ -98,23 +98,27 @@ app.get('/api/diag', async (req, res) => {
 // Helper for common yt-dlp options
 function getYtDlpOptions(url, extra = {}) {
     const isInstagram = url.includes('instagram.com');
+    const isTiktok = url.includes('tiktok.com');
     const isYoutube = url.includes('youtube.com') || url.includes('youtu.be');
     let domain = new URL(url).hostname.replace('www.', '');
     if (domain === 'youtu.be') domain = 'youtube.com';
-    
+
     // Modern mobile User-Agent for Instagram, Desktop for others
-    const userAgent = isInstagram 
+    const userAgent = isInstagram
         ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1'
         : 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
+
+    // Proxy: only use it where it actually helps. Webshare datacenter IPs are
+    // flagged by TikTok the same way they are by YouTube, so routing TikTok
+    // through the proxy breaks downloads. Default: no proxy for TikTok.
+    // Set FORCE_PROXY=1 to override.
+    const useProxy = process.env.PROXY_URL && (process.env.FORCE_PROXY === '1' || !isTiktok);
 
     const options = {
         noPlaylist: true,
         noCheckCertificates: true,
         geoBypass: true,
-        // Route yt-dlp through a proxy when the host's shared IP is
-        // rate-limited (HTTP 429) by YouTube. Set PROXY_URL in Railway, e.g.
-        // http://user:pass@host:port or socks5://host:port
-        ...(process.env.PROXY_URL ? { proxy: process.env.PROXY_URL } : {}),
+        ...(useProxy ? { proxy: process.env.PROXY_URL } : {}),
         addHeader: [
             `referer:https://www.${domain}/`,
             `user-agent:${userAgent}`,
@@ -487,7 +491,15 @@ app.post('/api/download', async (req, res) => {
 
     } catch (err) {
         console.error('[/api/download] Error:', err.message);
-        if (!res.headersSent) res.status(500).json({ error: 'Download failed. Please try a different format.' });
+        if (!res.headersSent) {
+            const msg = (err.message || '').toLowerCase();
+            let userMsg = 'Download failed. Please try a different format.';
+            if (msg.includes('ffmpeg')) userMsg = 'Audio conversion failed. Try downloading as MP4 instead of MP3.';
+            else if (msg.includes('unavailable') || msg.includes('private')) userMsg = 'This video is unavailable or private.';
+            else if (msg.includes('rate') || msg.includes('429')) userMsg = 'Rate-limited by the platform. Try again in a moment.';
+            else if (msg.includes('login') || msg.includes('cookies')) userMsg = 'This content requires a login. Try a public video.';
+            res.status(500).json({ error: userMsg, details: err.message });
+        }
     }
 });
 

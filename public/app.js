@@ -181,6 +181,22 @@ urlInput.addEventListener('paste', () => {
     }, 50);
 });
 
+/* ── Mobile nav toggle ───────────────────────────────────────────────────── */
+const navToggle = document.getElementById('navToggle');
+const navEl = document.querySelector('.nav');
+if (navToggle && navEl) {
+    const closeNav = () => {
+        navEl.classList.remove('open');
+        navToggle.setAttribute('aria-expanded', 'false');
+    };
+    navToggle.addEventListener('click', () => {
+        const isOpen = navEl.classList.toggle('open');
+        navToggle.setAttribute('aria-expanded', String(isOpen));
+    });
+    navEl.querySelectorAll('a').forEach(a => a.addEventListener('click', closeNav));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNav(); });
+}
+
 /* ── Scroll progress ─────────────────────────────────────────────────────── */
 const scrollProgress = document.getElementById('scrollProgress');
 if (scrollProgress) {

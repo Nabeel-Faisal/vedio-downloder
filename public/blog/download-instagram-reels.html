@@ -53,6 +53,9 @@
         <a href="/blog.html">Blog</a>
         <a href="/#faq">FAQ</a>
       </nav>
+      <button class="nav-toggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
       <a href="/#downloader" class="btn btn-primary btn-sm">Start Downloading</a>
     </div>
   </header>
@@ -225,6 +228,17 @@
   </footer>
 
   <script>
+    const navToggle = document.getElementById('navToggle');
+    const navEl = document.querySelector('.nav');
+    if (navToggle && navEl) {
+      const closeNav = () => { navEl.classList.remove('open'); navToggle.setAttribute('aria-expanded','false'); };
+      navToggle.addEventListener('click', () => {
+        const isOpen = navEl.classList.toggle('open');
+        navToggle.setAttribute('aria-expanded', String(isOpen));
+      });
+      navEl.querySelectorAll('a').forEach(a => a.addEventListener('click', closeNav));
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeNav(); });
+    }
     const sp = document.getElementById('scrollProgress');
     if (sp) window.addEventListener('scroll', () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
