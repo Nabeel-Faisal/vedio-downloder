@@ -325,7 +325,20 @@ async function fetchInstagramMeta(shortcode) {
 }
 
 async function fetchYoutubeMetaSocial(videoId) {
-    return fetchSocialMedia(`/youtube/v3/video/details?videoId=${encodeURIComponent(videoId)}&urlAccess=normal&renderableFormats=720p%2Chighres&getTranscript=false`);
+    // renderableFormats=all asks the API for every quality it can serve
+    return fetchSocialMedia(`/youtube/v3/video/details?videoId=${encodeURIComponent(videoId)}&urlAccess=normal&renderableFormats=all&getTranscript=false`);
+}
+
+// YouTube oEmbed: free, no key required. Gives us title, uploader, thumbnail
+// for any public video — the Social API's YouTube endpoint doesn't include them.
+async function fetchYoutubeOembed(videoId) {
+    try {
+        const resp = await fetch(`https://www.youtube.com/oembed?url=https://youtu.be/${encodeURIComponent(videoId)}&format=json`);
+        if (!resp.ok) return null;
+        return await resp.json();
+    } catch {
+        return null;
+    }
 }
 
 async function fetchTiktokMeta(url) {
@@ -335,11 +348,9 @@ async function fetchTiktokMeta(url) {
 
 function extractSocialContent(data) {
     const item = (data.contents && data.contents[0]) || {};
-    // Look in both `contents[0]` and top-level `data` for metadata fields —
-    // Emmanuel David's YouTube endpoint puts title/thumbnail at the root
-    // while Instagram nests them inside contents[0].
     const pickFirst = (...vals) => vals.find(v => v !== undefined && v !== null && v !== '');
     const videos = pickFirst(item.videos, item.items, data.videos, data.items) || [];
+    const audios = pickFirst(item.audios, item.audio, data.audios, data.audio) || [];
     const title = pickFirst(item.title, data.title, item.caption, data.caption, item.description, data.description, 'video');
     const thumbs = pickFirst(item.thumbnails, data.thumbnails, item.covers, data.covers) || [];
     const bestThumb = thumbs[thumbs.length - 1] || thumbs[0] || {};
@@ -347,31 +358,61 @@ function extractSocialContent(data) {
     const author = item.author || data.author || item.channel || data.channel || {};
     const uploader = pickFirst(author.name, author.username, author.title, item.username, data.username) || '';
     const duration = pickFirst(item.durationSeconds, data.durationSeconds, item.lengthSeconds, data.lengthSeconds, item.duration, data.duration) || 0;
-    return { videos, title, thumbnail, uploader, duration };
+    return { videos, audios, title, thumbnail, uploader, duration };
 }
 
-function buildSocialFormats(videos, platform) {
-    const formats = [{ id: 'social:best', label: '🏆 Best Quality', ext: 'mp4' }];
-    // Deduplicate by label/quality
+// Read metadata off a video item — the Social API's YouTube endpoint nests
+// most fields inside metadata; Instagram/TikTok put them at the top level.
+function videoQualityLabel(v) {
+    return (v.metadata && v.metadata.quality_label) || v.label || v.quality || '';
+}
+function videoMimeType(v) {
+    return (v.metadata && v.metadata.mime_type) || v.mimeType || v.mime_type || '';
+}
+function videoHasAudio(v) {
+    if (v.metadata && typeof v.metadata.has_audio === 'boolean') return v.metadata.has_audio;
+    if (typeof v.hasAudio === 'boolean') return v.hasAudio;
+    // Instagram/TikTok Reels are single-file with audio baked in
+    return true;
+}
+function videoSize(v) {
+    return (v.metadata && v.metadata.content_length) || v.size || 0;
+}
+function isMp4Video(v) {
+    return /mp4/i.test(videoMimeType(v)) || /avc1/i.test(videoMimeType(v));
+}
+
+function buildSocialFormats(videos) {
+    const formats = [{ id: 'social:best', label: '🏆 Best Quality (auto)', ext: 'mp4' }];
+    const mp4s = videos.filter(isMp4Video);
+    const pool = mp4s.length ? mp4s : videos;
     const seen = new Set();
-    const sorted = [...videos].sort((a, b) => (parseInt(b.label) || 0) - (parseInt(a.label) || 0));
+    const sorted = [...pool].sort((a, b) => (parseInt(videoQualityLabel(b)) || 0) - (parseInt(videoQualityLabel(a)) || 0));
     for (const v of sorted) {
-        const key = v.label || v.quality || `${v.width}x${v.height}`;
-        if (!key || seen.has(key)) continue;
-        seen.add(key);
-        formats.push({ id: `social:${key}`, label: key, ext: 'mp4', filesize: v.size });
+        const q = videoQualityLabel(v);
+        if (!q || seen.has(q)) continue;
+        seen.add(q);
+        formats.push({ id: `social:${q}`, label: q, ext: 'mp4', filesize: videoSize(v) });
     }
-    formats.push({ id: 'social:audio', label: '🎵 Audio only (MP3)', ext: 'mp3', filesize: undefined });
+    formats.push({ id: 'social:audio', label: '🎵 Audio only (MP3)', ext: 'mp3' });
     return formats;
 }
 
 function pickSocialVideo(videos, formatId) {
-    if (!videos.length) return null;
-    if (formatId === 'social:best') {
-        return videos[0]; // already sorted highest-first at build time; fetch fresh order
-    }
+    if (!videos || !videos.length) return null;
+    const mp4s = videos.filter(isMp4Video);
+    const pool = mp4s.length ? mp4s : videos;
+    const sorted = [...pool].sort((a, b) => (parseInt(videoQualityLabel(b)) || 0) - (parseInt(videoQualityLabel(a)) || 0));
+    if (formatId === 'social:best') return sorted[0];
     const q = formatId.replace('social:', '');
-    return videos.find(v => (v.label || v.quality) === q) || videos[0];
+    return sorted.find(v => videoQualityLabel(v) === q) || sorted[0];
+}
+
+function pickSocialAudio(audios) {
+    if (!audios || !audios.length) return null;
+    // Prefer m4a/mp4 audio (works well with ffmpeg copy) over webm
+    const m4a = audios.find(a => /mp4|m4a/i.test((a.metadata && a.metadata.mime_type) || a.mimeType || a.extension || ''));
+    return m4a || audios[0];
 }
 
 // ── Routes ───────────────────────────────────────────────────────────────────
@@ -415,18 +456,26 @@ app.post('/api/info', async (req, res) => {
                 if (!vid) return res.status(400).json({ error: 'Could not extract YouTube video ID' });
                 platform = 'YouTube';
                 console.log(`[info] YouTube via Social RapidAPI: ${vid}`);
-                data = await fetchYoutubeMetaSocial(vid);
+                const [socialData, oembed] = await Promise.all([
+                    fetchYoutubeMetaSocial(vid),
+                    fetchYoutubeOembed(vid),
+                ]);
+                data = socialData;
+                if (oembed) {
+                    data.__oembed = oembed;
+                }
             }
             const content = extractSocialContent(data);
+            const oembed = data.__oembed;
             return res.json({
-                title: content.title,
-                thumbnail: content.thumbnail,
+                title: (oembed && oembed.title) || content.title,
+                thumbnail: (oembed && oembed.thumbnail_url) || content.thumbnail,
                 duration: content.duration,
-                uploader: content.uploader,
+                uploader: (oembed && oembed.author_name) || content.uploader,
                 platform,
                 viewCount: 0,
                 likeCount: 0,
-                formats: buildSocialFormats(content.videos, platform),
+                formats: buildSocialFormats(content.videos),
             });
         } catch (err) {
             console.error(`[info] Social RapidAPI failed: ${err.message}`);
@@ -538,25 +587,36 @@ app.post('/api/download', async (req, res) => {
                 console.log(`[download] YouTube via Social RapidAPI: ${vid} (${formatId})`);
                 data = await fetchYoutubeMetaSocial(vid);
             }
-            const { videos } = extractSocialContent(data);
+            const { videos, audios } = extractSocialContent(data);
             if (!videos.length) return res.status(500).json({ error: 'No downloadable video streams available' });
-
-            // Sort by numeric quality descending
-            const sorted = [...videos].sort((a, b) => (parseInt(b.label) || 0) - (parseInt(a.label) || 0));
-            const chosen = pickSocialVideo(sorted, formatId);
-            if (!chosen || !chosen.url) return res.status(500).json({ error: 'Requested quality not available' });
+            const audio = pickSocialAudio(audios);
 
             if (formatId === 'social:audio') {
+                const audioUrl = (audio && audio.url) || (videos[0] && videos[0].url);
+                if (!audioUrl) return res.status(500).json({ error: 'No audio stream available' });
                 res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
                 res.setHeader('Content-Type', 'audio/mpeg');
-                const ff = spawnFfmpegMp3(chosen.url);
+                const ff = spawnFfmpegMp3(audioUrl);
                 attachFfmpegToResponse(ff, res);
                 return;
             }
 
+            const chosen = pickSocialVideo(videos, formatId);
+            if (!chosen || !chosen.url) return res.status(500).json({ error: 'Requested quality not available' });
+
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             res.setHeader('Content-Type', 'video/mp4');
-            await pipeUpstreamToResponse(chosen.url, res);
+
+            if (videoHasAudio(chosen)) {
+                await pipeUpstreamToResponse(chosen.url, res);
+                return;
+            }
+
+            if (!audio || !audio.url) {
+                return res.status(500).json({ error: 'Video-only stream but no audio stream available for merge' });
+            }
+            const ff = spawnFfmpegMerge(chosen.url, audio.url);
+            attachFfmpegToResponse(ff, res);
             return;
         } catch (err) {
             console.error(`[download] Social RapidAPI failed: ${err.message}`);
