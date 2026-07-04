@@ -292,6 +292,16 @@ function extractTiktokPostId(url) {
     return m ? m[1] : null;
 }
 
+function normalizeTiktokUrl(url) {
+    // Strip tracking params so the API sees a clean URL.
+    try {
+        const u = new URL(url);
+        return `${u.origin}${u.pathname}`;
+    } catch {
+        return url;
+    }
+}
+
 async function fetchSocialMedia(pathAndQuery) {
     if (!RAPIDAPI_KEY) throw new Error('RAPIDAPI_KEY not set');
     const url = `https://${RAPIDAPI_SOCIAL_HOST}${pathAndQuery}`;
@@ -311,18 +321,9 @@ async function fetchInstagramMeta(shortcode) {
     return fetchSocialMedia(`/instagram/v3/media/post/details?shortcode=${encodeURIComponent(shortcode)}&renderableFormats=720p%2Chighres`);
 }
 
-async function fetchTiktokMeta(postId) {
-    // Try common endpoint patterns — this API mirrors YouTube/Instagram naming.
-    const paths = [
-        `/tiktok/v3/media/post/details?postId=${encodeURIComponent(postId)}&renderableFormats=720p%2Chighres`,
-        `/tiktok/v3/post/details?postId=${encodeURIComponent(postId)}&renderableFormats=720p%2Chighres`,
-        `/tiktok/v3/media/details?postId=${encodeURIComponent(postId)}&renderableFormats=720p%2Chighres`,
-    ];
-    let lastErr;
-    for (const p of paths) {
-        try { return await fetchSocialMedia(p); } catch (e) { lastErr = e; }
-    }
-    throw lastErr;
+async function fetchTiktokMeta(url) {
+    const clean = normalizeTiktokUrl(url);
+    return fetchSocialMedia(`/tiktok/v3/post/details?url=${encodeURIComponent(clean)}&renderableFormats=720p%2Chighres`);
 }
 
 function extractSocialContent(data) {
@@ -394,11 +395,9 @@ app.post('/api/info', async (req, res) => {
                 console.log(`[info] Instagram via RapidAPI: ${sc}`);
                 data = await fetchInstagramMeta(sc);
             } else {
-                const pid = extractTiktokPostId(url);
-                if (!pid) return res.status(400).json({ error: 'Could not extract TikTok post ID' });
                 platform = 'TikTok';
-                console.log(`[info] TikTok via RapidAPI: ${pid}`);
-                data = await fetchTiktokMeta(pid);
+                console.log(`[info] TikTok via RapidAPI: ${url}`);
+                data = await fetchTiktokMeta(url);
             }
             const content = extractSocialContent(data);
             return res.json({
@@ -440,8 +439,11 @@ app.post('/api/info', async (req, res) => {
             });
         } catch (err) {
             console.error('[info] RapidAPI failed:', err.message);
+            const isQuota = /HTTP 429|quota|rate limit/i.test(err.message);
             return res.status(500).json({
-                error: 'Failed to fetch video info from RapidAPI.',
+                error: isQuota
+                    ? 'YouTube service is temporarily rate-limited. Please try again in a few minutes.'
+                    : 'Failed to fetch video info from RapidAPI.',
                 details: err.message,
             });
         }
@@ -540,10 +542,8 @@ app.post('/api/download', async (req, res) => {
                 console.log(`[download] Instagram via RapidAPI: ${sc} (${formatId})`);
                 data = await fetchInstagramMeta(sc);
             } else {
-                const pid = extractTiktokPostId(url);
-                if (!pid) return res.status(400).json({ error: 'Could not extract TikTok post ID' });
-                console.log(`[download] TikTok via RapidAPI: ${pid} (${formatId})`);
-                data = await fetchTiktokMeta(pid);
+                console.log(`[download] TikTok via RapidAPI: ${url} (${formatId})`);
+                data = await fetchTiktokMeta(url);
             }
             const { videos } = extractSocialContent(data);
             if (!videos.length) return res.status(500).json({ error: 'No downloadable video streams available' });
