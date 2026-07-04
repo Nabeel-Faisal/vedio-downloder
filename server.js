@@ -396,17 +396,40 @@ async function fetchTiktokMeta(url) {
     return fetchSocialMedia(`/tiktok/v3/post/details?url=${encodeURIComponent(clean)}&renderableFormats=720p%2Chighres`);
 }
 
+// Walk an object recursively looking for the first non-empty value matching
+// one of the candidate field names. Handles arbitrary API response shapes.
+function deepFindString(obj, names, maxDepth = 4) {
+    if (!obj || maxDepth < 0) return '';
+    if (typeof obj === 'string') return '';
+    if (Array.isArray(obj)) {
+        for (const el of obj) {
+            const v = deepFindString(el, names, maxDepth - 1);
+            if (v) return v;
+        }
+        return '';
+    }
+    if (typeof obj !== 'object') return '';
+    for (const name of names) {
+        const v = obj[name];
+        if (typeof v === 'string' && v.trim()) return v.trim();
+    }
+    for (const key of Object.keys(obj)) {
+        if (key === 'videos' || key === 'audios' || key === 'formats') continue;
+        const v = deepFindString(obj[key], names, maxDepth - 1);
+        if (v) return v;
+    }
+    return '';
+}
+
 function extractSocialContent(data) {
     const item = (data.contents && data.contents[0]) || {};
     const pickFirst = (...vals) => vals.find(v => v !== undefined && v !== null && v !== '');
     const videos = pickFirst(item.videos, item.items, data.videos, data.items) || [];
     const audios = pickFirst(item.audios, item.audio, data.audios, data.audio) || [];
-    const title = pickFirst(item.title, data.title, item.caption, data.caption, item.description, data.description, 'video');
-    const thumbs = pickFirst(item.thumbnails, data.thumbnails, item.covers, data.covers) || [];
-    const bestThumb = thumbs[thumbs.length - 1] || thumbs[0] || {};
-    const thumbnail = pickFirst(bestThumb.url, item.thumbnail, data.thumbnail, item.cover, data.cover) || '';
-    const author = item.author || data.author || item.channel || data.channel || {};
-    const uploader = pickFirst(author.name, author.username, author.title, item.username, data.username) || '';
+
+    const title = deepFindString(data, ['title', 'caption', 'description', 'desc', 'text', 'name', 'headline']) || 'video';
+    const thumbnail = deepFindString(data, ['thumbnail_url', 'thumbnailUrl', 'thumbnail', 'cover', 'coverUrl', 'cover_url', 'image', 'display_url', 'displayUrl', 'imageUrl', 'poster']) || '';
+    const uploader = deepFindString(data, ['author_name', 'authorName', 'username', 'uploader', 'channel', 'creator', 'ownerUsername', 'displayName']) || '';
     const duration = pickFirst(item.durationSeconds, data.durationSeconds, item.lengthSeconds, data.lengthSeconds, item.duration, data.duration) || 0;
     return { videos, audios, title, thumbnail, uploader, duration };
 }
@@ -487,6 +510,7 @@ async function runInfo(url, useCookies = true) {
 app.post('/api/info', async (req, res) => {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
+    const debug = req.query.debug === '1' || req.body.debug === true;
 
     if ((isInstagramUrl(url) || isTiktokUrl(url) || isYoutubeUrl(url)) && RAPIDAPI_KEY) {
         try {
@@ -524,15 +548,14 @@ app.post('/api/info', async (req, res) => {
                 oembed = ytOembed;
             }
             const content = extractSocialContent(data);
-            // Debug: log the top-level and contents[0] keys so we know what
-            // fields the API is actually returning per platform.
             try {
                 const topKeys = Object.keys(data || {});
                 const itemKeys = data && data.contents && data.contents[0] ? Object.keys(data.contents[0]) : [];
                 console.log(`[info] ${platform} response keys — top: [${topKeys.join(',')}], contents[0]: [${itemKeys.join(',')}]`);
                 console.log(`[info] ${platform} oembed:`, oembed ? Object.keys(oembed).join(',') : 'null');
+                console.log(`[info] ${platform} extracted: title="${content.title}", thumb="${content.thumbnail ? 'yes' : 'no'}", uploader="${content.uploader}"`);
             } catch {}
-            return res.json({
+            const response = {
                 title: (oembed && oembed.title) || content.title,
                 thumbnail: (oembed && oembed.thumbnail_url) || content.thumbnail,
                 duration: content.duration,
@@ -541,7 +564,20 @@ app.post('/api/info', async (req, res) => {
                 viewCount: 0,
                 likeCount: 0,
                 formats: buildSocialFormats(content.videos),
-            });
+            };
+            if (debug) {
+                const topKeys = Object.keys(data || {});
+                const itemKeys = data && data.contents && data.contents[0] ? Object.keys(data.contents[0]) : [];
+                response._debug = {
+                    topKeys,
+                    itemKeys,
+                    oembed: oembed || null,
+                    extractedTitle: content.title,
+                    extractedThumbnail: content.thumbnail,
+                    extractedUploader: content.uploader,
+                };
+            }
+            return res.json(response);
         } catch (err) {
             console.error(`[info] Social RapidAPI failed: ${err.message}`);
             return res.status(500).json({
