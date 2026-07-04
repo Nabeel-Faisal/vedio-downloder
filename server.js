@@ -341,6 +341,43 @@ async function fetchYoutubeOembed(videoId) {
     }
 }
 
+// TikTok oEmbed: also free and public.
+async function fetchTiktokOembed(tiktokUrl) {
+    try {
+        const clean = normalizeTiktokUrl(tiktokUrl);
+        const resp = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(clean)}`);
+        if (!resp.ok) return null;
+        return await resp.json();
+    } catch {
+        return null;
+    }
+}
+
+// Instagram doesn't have a working public oEmbed anymore, so scrape the
+// OpenGraph tags from the post page. Works for public accounts.
+async function fetchInstagramOgTags(igUrl) {
+    try {
+        const resp = await fetch(igUrl, {
+            headers: {
+                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+            },
+        });
+        if (!resp.ok) return null;
+        const html = await resp.text();
+        const pick = (prop) => {
+            const m = html.match(new RegExp(`<meta[^>]+property=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i')) ||
+                      html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${prop}["']`, 'i'));
+            return m ? m[1] : '';
+        };
+        const title = pick('og:title');
+        const thumbnail_url = pick('og:image');
+        const description = pick('og:description');
+        return { title, thumbnail_url, description };
+    } catch {
+        return null;
+    }
+}
+
 async function fetchTiktokMeta(url) {
     const clean = normalizeTiktokUrl(url);
     return fetchSocialMedia(`/tiktok/v3/post/details?url=${encodeURIComponent(clean)}&renderableFormats=720p%2Chighres`);
@@ -440,33 +477,40 @@ app.post('/api/info', async (req, res) => {
 
     if ((isInstagramUrl(url) || isTiktokUrl(url) || isYoutubeUrl(url)) && RAPIDAPI_KEY) {
         try {
-            let data, platform;
+            let data, platform, oembed;
             if (isInstagramUrl(url)) {
                 const sc = extractInstagramShortcode(url);
                 if (!sc) return res.status(400).json({ error: 'Could not extract Instagram shortcode' });
                 platform = 'Instagram';
                 console.log(`[info] Instagram via RapidAPI: ${sc}`);
-                data = await fetchInstagramMeta(sc);
+                const [socialData, ogTags] = await Promise.all([
+                    fetchInstagramMeta(sc),
+                    fetchInstagramOgTags(url),
+                ]);
+                data = socialData;
+                oembed = ogTags;
             } else if (isTiktokUrl(url)) {
                 platform = 'TikTok';
                 console.log(`[info] TikTok via RapidAPI: ${url}`);
-                data = await fetchTiktokMeta(url);
+                const [socialData, tkOembed] = await Promise.all([
+                    fetchTiktokMeta(url),
+                    fetchTiktokOembed(url),
+                ]);
+                data = socialData;
+                oembed = tkOembed;
             } else {
                 const vid = extractYoutubeId(url);
                 if (!vid) return res.status(400).json({ error: 'Could not extract YouTube video ID' });
                 platform = 'YouTube';
                 console.log(`[info] YouTube via Social RapidAPI: ${vid}`);
-                const [socialData, oembed] = await Promise.all([
+                const [socialData, ytOembed] = await Promise.all([
                     fetchYoutubeMetaSocial(vid),
                     fetchYoutubeOembed(vid),
                 ]);
                 data = socialData;
-                if (oembed) {
-                    data.__oembed = oembed;
-                }
+                oembed = ytOembed;
             }
             const content = extractSocialContent(data);
-            const oembed = data.__oembed;
             return res.json({
                 title: (oembed && oembed.title) || content.title,
                 thumbnail: (oembed && oembed.thumbnail_url) || content.thumbnail,
