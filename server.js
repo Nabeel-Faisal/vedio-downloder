@@ -353,29 +353,42 @@ async function fetchTiktokOembed(tiktokUrl) {
     }
 }
 
-// Instagram doesn't have a working public oEmbed anymore, so scrape the
-// OpenGraph tags from the post page. Works for public accounts.
+// Instagram doesn't have a working public oEmbed anymore. Try scraping OG
+// tags from a few URL variants using a Meta-crawler user-agent, which
+// Instagram is friendlier to than a generic browser UA.
 async function fetchInstagramOgTags(igUrl) {
-    try {
-        const resp = await fetch(igUrl, {
-            headers: {
-                'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-            },
-        });
-        if (!resp.ok) return null;
-        const html = await resp.text();
-        const pick = (prop) => {
-            const m = html.match(new RegExp(`<meta[^>]+property=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i')) ||
-                      html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${prop}["']`, 'i'));
-            return m ? m[1] : '';
-        };
-        const title = pick('og:title');
-        const thumbnail_url = pick('og:image');
-        const description = pick('og:description');
-        return { title, thumbnail_url, description };
-    } catch {
-        return null;
+    const pick = (html, prop) => {
+        const m = html.match(new RegExp(`<meta[^>]+property=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i')) ||
+                  html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+property=["']${prop}["']`, 'i'));
+        return m ? m[1] : '';
+    };
+
+    const clean = igUrl.split('?')[0].replace(/\/?$/, '/');
+    const candidates = [
+        `${clean}embed/`,
+        clean,
+    ];
+    const userAgents = [
+        'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        'Mozilla/5.0 (compatible; Bingbot/2.0; +http://www.bing.com/bingbot.htm)',
+    ];
+
+    for (const url of candidates) {
+        for (const ua of userAgents) {
+            try {
+                const resp = await fetch(url, { headers: { 'user-agent': ua, 'accept-language': 'en-US,en;q=0.9' } });
+                if (!resp.ok) continue;
+                const html = await resp.text();
+                const title = pick(html, 'og:title');
+                const thumbnail_url = pick(html, 'og:image');
+                const description = pick(html, 'og:description');
+                if (title || thumbnail_url) {
+                    return { title, thumbnail_url, description };
+                }
+            } catch { /* try next */ }
+        }
     }
+    return null;
 }
 
 async function fetchTiktokMeta(url) {
@@ -511,6 +524,14 @@ app.post('/api/info', async (req, res) => {
                 oembed = ytOembed;
             }
             const content = extractSocialContent(data);
+            // Debug: log the top-level and contents[0] keys so we know what
+            // fields the API is actually returning per platform.
+            try {
+                const topKeys = Object.keys(data || {});
+                const itemKeys = data && data.contents && data.contents[0] ? Object.keys(data.contents[0]) : [];
+                console.log(`[info] ${platform} response keys — top: [${topKeys.join(',')}], contents[0]: [${itemKeys.join(',')}]`);
+                console.log(`[info] ${platform} oembed:`, oembed ? Object.keys(oembed).join(',') : 'null');
+            } catch {}
             return res.json({
                 title: (oembed && oembed.title) || content.title,
                 thumbnail: (oembed && oembed.thumbnail_url) || content.thumbnail,
