@@ -334,14 +334,19 @@ async function fetchTiktokMeta(url) {
 }
 
 function extractSocialContent(data) {
-    const item = (data.contents && data.contents[0]) || data;
-    const videos = item.videos || item.items || [];
-    const title = item.title || item.caption || item.description || 'video';
-    const thumbs = item.thumbnails || item.covers || [];
+    const item = (data.contents && data.contents[0]) || {};
+    // Look in both `contents[0]` and top-level `data` for metadata fields —
+    // Emmanuel David's YouTube endpoint puts title/thumbnail at the root
+    // while Instagram nests them inside contents[0].
+    const pickFirst = (...vals) => vals.find(v => v !== undefined && v !== null && v !== '');
+    const videos = pickFirst(item.videos, item.items, data.videos, data.items) || [];
+    const title = pickFirst(item.title, data.title, item.caption, data.caption, item.description, data.description, 'video');
+    const thumbs = pickFirst(item.thumbnails, data.thumbnails, item.covers, data.covers) || [];
     const bestThumb = thumbs[thumbs.length - 1] || thumbs[0] || {};
-    const thumbnail = bestThumb.url || item.thumbnail || item.cover || '';
-    const uploader = (item.author && (item.author.name || item.author.username)) || item.username || item.channel || '';
-    const duration = item.durationSeconds || item.lengthSeconds || item.duration || 0;
+    const thumbnail = pickFirst(bestThumb.url, item.thumbnail, data.thumbnail, item.cover, data.cover) || '';
+    const author = item.author || data.author || item.channel || data.channel || {};
+    const uploader = pickFirst(author.name, author.username, author.title, item.username, data.username) || '';
+    const duration = pickFirst(item.durationSeconds, data.durationSeconds, item.lengthSeconds, data.lengthSeconds, item.duration, data.duration) || 0;
     return { videos, title, thumbnail, uploader, duration };
 }
 
