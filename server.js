@@ -11,6 +11,7 @@ const zlib = require('zlib');
 const youtubedl = require('youtube-dl-exec');
 
 const RAPIDAPI_HOST = 'youtube-media-downloader.p.rapidapi.com';
+const RAPIDAPI_SOCIAL_HOST = 'social-media-video-downloader.p.rapidapi.com';
 const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || '';
 
 const app = express();
@@ -265,6 +266,101 @@ function attachFfmpegToResponse(ff, res) {
     });
 }
 
+// ── RapidAPI (Instagram / TikTok — Social Media Video Downloader) ───────────
+
+function isInstagramUrl(url) {
+    return /instagram\.com/i.test(url);
+}
+
+function isTiktokUrl(url) {
+    return /tiktok\.com/i.test(url);
+}
+
+function extractInstagramShortcode(url) {
+    const m =
+        url.match(/instagram\.com\/reel\/([^/?#]+)/) ||
+        url.match(/instagram\.com\/p\/([^/?#]+)/) ||
+        url.match(/instagram\.com\/tv\/([^/?#]+)/);
+    return m ? m[1] : null;
+}
+
+function extractTiktokPostId(url) {
+    const m =
+        url.match(/tiktok\.com\/[^/]+\/video\/(\d+)/) ||
+        url.match(/tiktok\.com\/v\/(\d+)/) ||
+        url.match(/vm\.tiktok\.com\/(\w+)/);
+    return m ? m[1] : null;
+}
+
+async function fetchSocialMedia(pathAndQuery) {
+    if (!RAPIDAPI_KEY) throw new Error('RAPIDAPI_KEY not set');
+    const url = `https://${RAPIDAPI_SOCIAL_HOST}${pathAndQuery}`;
+    const resp = await fetch(url, {
+        headers: {
+            'x-rapidapi-host': RAPIDAPI_SOCIAL_HOST,
+            'x-rapidapi-key': RAPIDAPI_KEY,
+        },
+    });
+    if (!resp.ok) throw new Error(`RapidAPI HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (data.error) throw new Error(`RapidAPI: ${data.error.message || data.error}`);
+    return data;
+}
+
+async function fetchInstagramMeta(shortcode) {
+    return fetchSocialMedia(`/instagram/v3/media/post/details?shortcode=${encodeURIComponent(shortcode)}&renderableFormats=720p%2Chighres`);
+}
+
+async function fetchTiktokMeta(postId) {
+    // Try common endpoint patterns — this API mirrors YouTube/Instagram naming.
+    const paths = [
+        `/tiktok/v3/media/post/details?postId=${encodeURIComponent(postId)}&renderableFormats=720p%2Chighres`,
+        `/tiktok/v3/post/details?postId=${encodeURIComponent(postId)}&renderableFormats=720p%2Chighres`,
+        `/tiktok/v3/media/details?postId=${encodeURIComponent(postId)}&renderableFormats=720p%2Chighres`,
+    ];
+    let lastErr;
+    for (const p of paths) {
+        try { return await fetchSocialMedia(p); } catch (e) { lastErr = e; }
+    }
+    throw lastErr;
+}
+
+function extractSocialContent(data) {
+    const item = (data.contents && data.contents[0]) || data;
+    const videos = item.videos || item.items || [];
+    const title = item.title || item.caption || item.description || 'video';
+    const thumbs = item.thumbnails || item.covers || [];
+    const bestThumb = thumbs[thumbs.length - 1] || thumbs[0] || {};
+    const thumbnail = bestThumb.url || item.thumbnail || item.cover || '';
+    const uploader = (item.author && (item.author.name || item.author.username)) || item.username || item.channel || '';
+    const duration = item.durationSeconds || item.lengthSeconds || item.duration || 0;
+    return { videos, title, thumbnail, uploader, duration };
+}
+
+function buildSocialFormats(videos, platform) {
+    const formats = [{ id: 'social:best', label: '🏆 Best Quality', ext: 'mp4' }];
+    // Deduplicate by label/quality
+    const seen = new Set();
+    const sorted = [...videos].sort((a, b) => (parseInt(b.label) || 0) - (parseInt(a.label) || 0));
+    for (const v of sorted) {
+        const key = v.label || v.quality || `${v.width}x${v.height}`;
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        formats.push({ id: `social:${key}`, label: key, ext: 'mp4', filesize: v.size });
+    }
+    formats.push({ id: 'social:audio', label: '🎵 Audio only (MP3)', ext: 'mp3', filesize: undefined });
+    return formats;
+}
+
+function pickSocialVideo(videos, formatId) {
+    if (!videos.length) return null;
+    if (formatId === 'social:best') {
+        return videos[0]; // already sorted highest-first at build time; fetch fresh order
+    }
+    const q = formatId.replace('social:', '');
+    return videos.find(v => (v.label || v.quality) === q) || videos[0];
+}
+
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 // Stale/rotated cookies don't just fail — they actively trigger YouTube's
@@ -287,6 +383,42 @@ async function runInfo(url, useCookies = true) {
 app.post('/api/info', async (req, res) => {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
+
+    if ((isInstagramUrl(url) || isTiktokUrl(url)) && RAPIDAPI_KEY) {
+        try {
+            let data, platform;
+            if (isInstagramUrl(url)) {
+                const sc = extractInstagramShortcode(url);
+                if (!sc) return res.status(400).json({ error: 'Could not extract Instagram shortcode' });
+                platform = 'Instagram';
+                console.log(`[info] Instagram via RapidAPI: ${sc}`);
+                data = await fetchInstagramMeta(sc);
+            } else {
+                const pid = extractTiktokPostId(url);
+                if (!pid) return res.status(400).json({ error: 'Could not extract TikTok post ID' });
+                platform = 'TikTok';
+                console.log(`[info] TikTok via RapidAPI: ${pid}`);
+                data = await fetchTiktokMeta(pid);
+            }
+            const content = extractSocialContent(data);
+            return res.json({
+                title: content.title,
+                thumbnail: content.thumbnail,
+                duration: content.duration,
+                uploader: content.uploader,
+                platform,
+                viewCount: 0,
+                likeCount: 0,
+                formats: buildSocialFormats(content.videos, platform),
+            });
+        } catch (err) {
+            console.error(`[info] Social RapidAPI failed: ${err.message}`);
+            return res.status(500).json({
+                error: 'Failed to fetch video info.',
+                details: err.message,
+            });
+        }
+    }
 
     if (isYoutubeUrl(url) && RAPIDAPI_KEY) {
         const videoId = extractYoutubeId(url);
@@ -398,6 +530,47 @@ app.post('/api/download', async (req, res) => {
 
     const safeTitle = (title || 'video').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') || 'video';
     const filename = `${safeTitle}.${ext === 'mp3' ? 'mp3' : 'mp4'}`;
+
+    if ((isInstagramUrl(url) || isTiktokUrl(url)) && RAPIDAPI_KEY && typeof formatId === 'string' && formatId.startsWith('social:')) {
+        try {
+            let data;
+            if (isInstagramUrl(url)) {
+                const sc = extractInstagramShortcode(url);
+                if (!sc) return res.status(400).json({ error: 'Could not extract Instagram shortcode' });
+                console.log(`[download] Instagram via RapidAPI: ${sc} (${formatId})`);
+                data = await fetchInstagramMeta(sc);
+            } else {
+                const pid = extractTiktokPostId(url);
+                if (!pid) return res.status(400).json({ error: 'Could not extract TikTok post ID' });
+                console.log(`[download] TikTok via RapidAPI: ${pid} (${formatId})`);
+                data = await fetchTiktokMeta(pid);
+            }
+            const { videos } = extractSocialContent(data);
+            if (!videos.length) return res.status(500).json({ error: 'No downloadable video streams available' });
+
+            // Sort by numeric quality descending
+            const sorted = [...videos].sort((a, b) => (parseInt(b.label) || 0) - (parseInt(a.label) || 0));
+            const chosen = pickSocialVideo(sorted, formatId);
+            if (!chosen || !chosen.url) return res.status(500).json({ error: 'Requested quality not available' });
+
+            if (formatId === 'social:audio') {
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                res.setHeader('Content-Type', 'audio/mpeg');
+                const ff = spawnFfmpegMp3(chosen.url);
+                attachFfmpegToResponse(ff, res);
+                return;
+            }
+
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+            res.setHeader('Content-Type', 'video/mp4');
+            await pipeUpstreamToResponse(chosen.url, res);
+            return;
+        } catch (err) {
+            console.error(`[download] Social RapidAPI failed: ${err.message}`);
+            if (!res.headersSent) res.status(500).json({ error: 'Download failed.', details: err.message });
+            return;
+        }
+    }
 
     if (isYoutubeUrl(url) && RAPIDAPI_KEY && typeof formatId === 'string' && formatId.startsWith('rapid:')) {
         const videoId = extractYoutubeId(url);
