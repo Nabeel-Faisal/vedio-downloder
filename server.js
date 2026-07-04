@@ -159,7 +159,7 @@ function getYtDlpOptions(url, extra = {}) {
     return options;
 }
 
-// ── RapidAPI (YouTube) ───────────────────────────────────────────────────────
+// ── YouTube URL helpers ──────────────────────────────────────────────────────
 
 function isYoutubeUrl(url) {
     return /youtube\.com|youtu\.be/i.test(url);
@@ -174,6 +174,9 @@ function extractYoutubeId(url) {
     return m ? m[1] : null;
 }
 
+// Legacy DataFanatic YouTube API — kept as fallback via LEGACY_YOUTUBE_HOST env.
+// Emmanuel David's Social Media Video Downloader is the primary path now
+// (see fetchYoutubeMetaSocial below).
 async function fetchYoutubeMeta(videoId) {
     if (!RAPIDAPI_KEY) throw new Error('RAPIDAPI_KEY not set');
     const url = `https://${RAPIDAPI_HOST}/v2/video/details?videoId=${encodeURIComponent(videoId)}&urlAccess=normal&videos=auto&audios=auto`;
@@ -321,6 +324,10 @@ async function fetchInstagramMeta(shortcode) {
     return fetchSocialMedia(`/instagram/v3/media/post/details?shortcode=${encodeURIComponent(shortcode)}&renderableFormats=720p%2Chighres`);
 }
 
+async function fetchYoutubeMetaSocial(videoId) {
+    return fetchSocialMedia(`/youtube/v3/video/details?videoId=${encodeURIComponent(videoId)}&urlAccess=normal&renderableFormats=720p%2Chighres&getTranscript=false`);
+}
+
 async function fetchTiktokMeta(url) {
     const clean = normalizeTiktokUrl(url);
     return fetchSocialMedia(`/tiktok/v3/post/details?url=${encodeURIComponent(clean)}&renderableFormats=720p%2Chighres`);
@@ -385,7 +392,7 @@ app.post('/api/info', async (req, res) => {
     const { url } = req.body;
     if (!url) return res.status(400).json({ error: 'URL is required' });
 
-    if ((isInstagramUrl(url) || isTiktokUrl(url)) && RAPIDAPI_KEY) {
+    if ((isInstagramUrl(url) || isTiktokUrl(url) || isYoutubeUrl(url)) && RAPIDAPI_KEY) {
         try {
             let data, platform;
             if (isInstagramUrl(url)) {
@@ -394,10 +401,16 @@ app.post('/api/info', async (req, res) => {
                 platform = 'Instagram';
                 console.log(`[info] Instagram via RapidAPI: ${sc}`);
                 data = await fetchInstagramMeta(sc);
-            } else {
+            } else if (isTiktokUrl(url)) {
                 platform = 'TikTok';
                 console.log(`[info] TikTok via RapidAPI: ${url}`);
                 data = await fetchTiktokMeta(url);
+            } else {
+                const vid = extractYoutubeId(url);
+                if (!vid) return res.status(400).json({ error: 'Could not extract YouTube video ID' });
+                platform = 'YouTube';
+                console.log(`[info] YouTube via Social RapidAPI: ${vid}`);
+                data = await fetchYoutubeMetaSocial(vid);
             }
             const content = extractSocialContent(data);
             return res.json({
@@ -414,36 +427,6 @@ app.post('/api/info', async (req, res) => {
             console.error(`[info] Social RapidAPI failed: ${err.message}`);
             return res.status(500).json({
                 error: 'Failed to fetch video info.',
-                details: err.message,
-            });
-        }
-    }
-
-    if (isYoutubeUrl(url) && RAPIDAPI_KEY) {
-        const videoId = extractYoutubeId(url);
-        if (!videoId) return res.status(400).json({ error: 'Could not extract YouTube video ID' });
-        try {
-            console.log(`[info] YouTube via RapidAPI: ${videoId}`);
-            const data = await fetchYoutubeMeta(videoId);
-            const thumbs = data.thumbnails || [];
-            const bestThumb = thumbs[thumbs.length - 1] || thumbs[0] || {};
-            return res.json({
-                title: data.title,
-                thumbnail: bestThumb.url || '',
-                duration: data.lengthSeconds || 0,
-                uploader: (data.channel && data.channel.name) || '',
-                platform: 'YouTube',
-                viewCount: data.viewCount || 0,
-                likeCount: data.likeCount || 0,
-                formats: buildYoutubeFormats(data),
-            });
-        } catch (err) {
-            console.error('[info] RapidAPI failed:', err.message);
-            const isQuota = /HTTP 429|quota|rate limit/i.test(err.message);
-            return res.status(500).json({
-                error: isQuota
-                    ? 'YouTube service is temporarily rate-limited. Please try again in a few minutes.'
-                    : 'Failed to fetch video info from RapidAPI.',
                 details: err.message,
             });
         }
@@ -533,7 +516,7 @@ app.post('/api/download', async (req, res) => {
     const safeTitle = (title || 'video').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_') || 'video';
     const filename = `${safeTitle}.${ext === 'mp3' ? 'mp3' : 'mp4'}`;
 
-    if ((isInstagramUrl(url) || isTiktokUrl(url)) && RAPIDAPI_KEY && typeof formatId === 'string' && formatId.startsWith('social:')) {
+    if ((isInstagramUrl(url) || isTiktokUrl(url) || isYoutubeUrl(url)) && RAPIDAPI_KEY && typeof formatId === 'string' && formatId.startsWith('social:')) {
         try {
             let data;
             if (isInstagramUrl(url)) {
@@ -541,9 +524,14 @@ app.post('/api/download', async (req, res) => {
                 if (!sc) return res.status(400).json({ error: 'Could not extract Instagram shortcode' });
                 console.log(`[download] Instagram via RapidAPI: ${sc} (${formatId})`);
                 data = await fetchInstagramMeta(sc);
-            } else {
+            } else if (isTiktokUrl(url)) {
                 console.log(`[download] TikTok via RapidAPI: ${url} (${formatId})`);
                 data = await fetchTiktokMeta(url);
+            } else {
+                const vid = extractYoutubeId(url);
+                if (!vid) return res.status(400).json({ error: 'Could not extract YouTube video ID' });
+                console.log(`[download] YouTube via Social RapidAPI: ${vid} (${formatId})`);
+                data = await fetchYoutubeMetaSocial(vid);
             }
             const { videos } = extractSocialContent(data);
             if (!videos.length) return res.status(500).json({ error: 'No downloadable video streams available' });
@@ -567,47 +555,6 @@ app.post('/api/download', async (req, res) => {
             return;
         } catch (err) {
             console.error(`[download] Social RapidAPI failed: ${err.message}`);
-            if (!res.headersSent) res.status(500).json({ error: 'Download failed.', details: err.message });
-            return;
-        }
-    }
-
-    if (isYoutubeUrl(url) && RAPIDAPI_KEY && typeof formatId === 'string' && formatId.startsWith('rapid:')) {
-        const videoId = extractYoutubeId(url);
-        if (!videoId) return res.status(400).json({ error: 'Could not extract YouTube video ID' });
-        try {
-            console.log(`[download] YouTube via RapidAPI: ${videoId} (${formatId})`);
-            const data = await fetchYoutubeMeta(videoId);
-            const audios = (data.audios && data.audios.items) || [];
-            const videos = (data.videos && data.videos.items) || [];
-            const audio = pickOriginalAudio(audios);
-
-            if (formatId === 'rapid:audio') {
-                if (!audio) return res.status(500).json({ error: 'No audio stream available' });
-                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-                res.setHeader('Content-Type', 'audio/mpeg');
-                const ff = spawnFfmpegMp3(audio.url);
-                attachFfmpegToResponse(ff, res);
-                return;
-            }
-
-            const video = pickVideoStream(videos, formatId);
-            if (!video) return res.status(500).json({ error: 'Requested quality not available' });
-
-            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-            res.setHeader('Content-Type', 'video/mp4');
-
-            if (video.hasAudio) {
-                await pipeUpstreamToResponse(video.url, res);
-                return;
-            }
-
-            if (!audio) return res.status(500).json({ error: 'No audio stream available for merge' });
-            const ff = spawnFfmpegMerge(video.url, audio.url);
-            attachFfmpegToResponse(ff, res);
-            return;
-        } catch (err) {
-            console.error('[download] RapidAPI failed:', err.message);
             if (!res.headersSent) res.status(500).json({ error: 'Download failed.', details: err.message });
             return;
         }
