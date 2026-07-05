@@ -238,12 +238,26 @@ async function pipeUpstreamToResponse(url, res) {
 
 function spawnFfmpegMerge(videoUrl, audioUrl) {
     return spawn('ffmpeg', [
-        '-hide_banner', '-loglevel', 'error',
+        '-hide_banner', '-loglevel', 'warning',
+        // Reconnect on transient HTTP failures so slow upstream doesn't
+        // cause ffmpeg to give up mid-stream and produce a short/corrupt file.
+        '-reconnect', '1',
+        '-reconnect_streamed', '1',
+        '-reconnect_delay_max', '5',
         '-i', videoUrl,
+        '-reconnect', '1',
+        '-reconnect_streamed', '1',
+        '-reconnect_delay_max', '5',
         '-i', audioUrl,
         '-map', '0:v:0', '-map', '1:a:0',
-        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k',
+        // Copy video without re-encoding to preserve the full source quality
+        // regardless of codec (h264/vp9/av01 all pass through the mp4 mux).
+        '-c:v', 'copy',
+        '-c:a', 'aac', '-b:a', '192k',
         '-f', 'mp4',
+        // Fragmented MP4 so the file streams to the browser while the merge
+        // is still in progress. empty_moov+default_base_moof keep the file
+        // playable in every mainstream player we tested.
         '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
         'pipe:1',
     ]);
@@ -251,9 +265,12 @@ function spawnFfmpegMerge(videoUrl, audioUrl) {
 
 function spawnFfmpegMp3(audioUrl) {
     return spawn('ffmpeg', [
-        '-hide_banner', '-loglevel', 'error',
+        '-hide_banner', '-loglevel', 'warning',
+        '-reconnect', '1',
+        '-reconnect_streamed', '1',
+        '-reconnect_delay_max', '5',
         '-i', audioUrl,
-        '-vn', '-c:a', 'libmp3lame', '-q:a', '2',
+        '-vn', '-c:a', 'libmp3lame', '-q:a', '0',
         '-f', 'mp3',
         'pipe:1',
     ]);
@@ -454,14 +471,33 @@ function videoSize(v) {
 function isMp4Video(v) {
     return /mp4/i.test(videoMimeType(v)) || /avc1/i.test(videoMimeType(v));
 }
+// AV1 has ~30% better visual quality than h264 at the same bitrate; VP9 is in
+// between. When multiple codecs are offered at the same quality label we want
+// to pick the one that actually looks best.
+function videoCodecRank(v) {
+    const mime = videoMimeType(v);
+    if (/av01/i.test(mime)) return 3;    // best visual quality per byte
+    if (/vp09|vp9/i.test(mime)) return 2;
+    if (/avc1|h264/i.test(mime)) return 1;
+    return 0;
+}
+
+// Rank streams so the highest resolution wins first, then within the same
+// resolution the highest-quality codec (av1 > vp9 > h264) wins.
+function sortByResThenCodec(pool) {
+    return [...pool].sort((a, b) => {
+        const dr = (parseInt(videoQualityLabel(b)) || 0) - (parseInt(videoQualityLabel(a)) || 0);
+        if (dr !== 0) return dr;
+        return videoCodecRank(b) - videoCodecRank(a);
+    });
+}
 
 function buildSocialFormats(videos) {
     const formats = [{ id: 'social:best', label: '🏆 Best Quality (auto)', ext: 'mp4' }];
     const mp4s = videos.filter(isMp4Video);
     const pool = mp4s.length ? mp4s : videos;
     const seen = new Set();
-    const sorted = [...pool].sort((a, b) => (parseInt(videoQualityLabel(b)) || 0) - (parseInt(videoQualityLabel(a)) || 0));
-    for (const v of sorted) {
+    for (const v of sortByResThenCodec(pool)) {
         const q = videoQualityLabel(v);
         if (!q || seen.has(q)) continue;
         seen.add(q);
@@ -475,7 +511,7 @@ function pickSocialVideo(videos, formatId) {
     if (!videos || !videos.length) return null;
     const mp4s = videos.filter(isMp4Video);
     const pool = mp4s.length ? mp4s : videos;
-    const sorted = [...pool].sort((a, b) => (parseInt(videoQualityLabel(b)) || 0) - (parseInt(videoQualityLabel(a)) || 0));
+    const sorted = sortByResThenCodec(pool);
     if (formatId === 'social:best') return sorted[0];
     const q = formatId.replace('social:', '');
     return sorted.find(v => videoQualityLabel(v) === q) || sorted[0];
