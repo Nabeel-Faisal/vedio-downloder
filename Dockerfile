@@ -15,7 +15,7 @@ RUN apt-get update && \
     ca-certificates && \
     curl -fsSL https://deno.land/x/install/install.sh | sh && \
     mv /root/.deno/bin/deno /usr/local/bin/deno && \
-    python3 -m pip install --break-system-packages -U yt-dlp bgutil-ytdlp-pot-provider && \
+    python3 -m pip install --break-system-packages -U "yt-dlp[default,curl-cffi]" bgutil-ytdlp-pot-provider && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
